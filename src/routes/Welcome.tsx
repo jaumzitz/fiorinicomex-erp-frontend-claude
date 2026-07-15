@@ -11,14 +11,17 @@ import {
   proximosEmbarques,
   getCliente,
 } from '@/lib/domain-queries'
+import { formatarData } from '@/lib/date'
+import { useProcessos } from '@/store/ProcessosContext'
 import { PI_STATUS_LABELS } from '@/types/domain'
 
 export default function Welcome() {
-  const statusCounts = countByStatus()
-  const ativos = processosAtivos()
-  const embarques = proximosEmbarques()
-  const chegadas = proximasChegadas()
-  const pendentes = numerariosPendentes()
+  const { processos } = useProcessos()
+  const statusCounts = countByStatus(processos)
+  const ativos = processosAtivos(processos)
+  const embarques = proximosEmbarques(processos)
+  const chegadas = proximasChegadas(processos)
+  const pendentes = numerariosPendentes(processos)
 
   return (
     <div>
@@ -110,7 +113,8 @@ export default function Welcome() {
                     <span className="font-medium">{p.numero}</span>
                     <span className="text-muted-foreground">
                       {getCliente(p.clienteId)?.nome} — numerário enviado em{' '}
-                      {p.numerarioEnviadoEm}, ainda sem confirmação de pagamento
+                      {formatarData(p.numerarioEnviadoEm)}, ainda sem confirmação de
+                      pagamento
                     </span>
                   </li>
                 ))}
@@ -133,7 +137,9 @@ export default function Welcome() {
                   <span>
                     {p.numero} — {getCliente(p.clienteId)?.nome}
                   </span>
-                  <span className="text-muted-foreground">{p.previsaoEmbarque}</span>
+                  <span className="text-muted-foreground">
+                    {formatarData(p.previsaoEmbarque)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -154,7 +160,9 @@ export default function Welcome() {
                   <span>
                     {p.numero} — {getCliente(p.clienteId)?.nome}
                   </span>
-                  <span className="text-muted-foreground">{p.previsaoChegada}</span>
+                  <span className="text-muted-foreground">
+                    {formatarData(p.previsaoChegada)}
+                  </span>
                 </li>
               ))}
             </ul>

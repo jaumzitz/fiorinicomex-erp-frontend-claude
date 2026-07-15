@@ -7,13 +7,16 @@ import {
   proximasChegadas,
   proximosEmbarques,
 } from '@/lib/domain-queries'
+import { formatarData } from '@/lib/date'
+import { useProcessos } from '@/store/ProcessosContext'
 import { PI_STATUSES } from '@/types/domain'
 
 export default function BI() {
-  const statusCounts = countByStatus()
-  const porCliente = countByCliente()
-  const embarques = proximosEmbarques(10)
-  const chegadas = proximasChegadas(10)
+  const { processos } = useProcessos()
+  const statusCounts = countByStatus(processos)
+  const porCliente = countByCliente(processos)
+  const embarques = proximosEmbarques(processos, 10)
+  const chegadas = proximasChegadas(processos, 10)
   const maxStatusCount = Math.max(...Object.values(statusCounts), 1)
 
   return (
@@ -80,7 +83,9 @@ export default function BI() {
               {embarques.map((p) => (
                 <li key={p.id} className="flex items-center justify-between">
                   <span>{p.numero}</span>
-                  <span className="text-muted-foreground">{p.previsaoEmbarque}</span>
+                  <span className="text-muted-foreground">
+                    {formatarData(p.previsaoEmbarque)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -96,7 +101,9 @@ export default function BI() {
               {chegadas.map((p) => (
                 <li key={p.id} className="flex items-center justify-between">
                   <span>{p.numero}</span>
-                  <span className="text-muted-foreground">{p.previsaoChegada}</span>
+                  <span className="text-muted-foreground">
+                    {formatarData(p.previsaoChegada)}
+                  </span>
                 </li>
               ))}
             </ul>

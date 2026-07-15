@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Ship, BarChart3, Settings, Package } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { useEmpresa } from '@/store/EmpresaContext'
 
 const navItems = [
   { to: '/', label: 'Boas-vindas', icon: LayoutDashboard, end: true },
@@ -11,14 +12,20 @@ const navItems = [
 ]
 
 export function Sidebar() {
+  const { empresa } = useEmpresa()
+
   return (
     <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border flex h-svh w-64 shrink-0 flex-col border-r">
       <div className="flex items-center gap-2 px-5 py-5">
-        <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-          <Package className="size-4.5" />
+        <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md">
+          {empresa.iconeUrl ? (
+            <img src={empresa.iconeUrl} alt="" className="size-full object-cover" />
+          ) : (
+            <Package className="size-4.5" />
+          )}
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold">Fiorini Comex</span>
+          <span className="text-sm font-semibold">{empresa.nome}</span>
           <span className="text-muted-foreground text-xs">Gestão de Importação</span>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import type { Cliente, Fornecedor, ProcessoImportacao } from '@/types/domain'
+import type { Cliente, Empresa, Fornecedor, ProcessoImportacao } from '@/types/domain'
 
 export const clientes: Cliente[] = [
   { id: 'cli-1', nome: 'Cerâmica Bela Vista Ltda', cnpj: '12.345.678/0001-90', email: 'compras@belavista.com.br', telefone: '(11) 4002-8922' },
@@ -15,6 +15,22 @@ export const fornecedoresFrete: Fornecedor[] = [
   { id: 'for-4', nome: 'AGL', contato: 'Bianca Rocha', email: 'freight@agl.com.br' },
 ]
 
+export const empresaPadrao: Empresa = {
+  nome: 'Fiorini Comex',
+  razaoSocial: 'Fiorini Comercio Exterior Ltda',
+  cnpj: '',
+  responsavel: '',
+  endereco: 'Itajaí — SC',
+  email: '',
+  telefone: '',
+  dadosBancarios: {
+    banco: 'Banco do Brasil - 001',
+    agencia: '1234-5',
+    conta: '67890-1',
+    pix: '12.345.678/0001-90',
+  },
+}
+
 export const processos: ProcessoImportacao[] = [
   {
     id: 'pi-1',
@@ -23,6 +39,9 @@ export const processos: ProcessoImportacao[] = [
     status: 'contratacao_frete',
     modal: 'maritimo',
     fornecedoresCotadosIds: ['for-1', 'for-3', 'for-4'],
+    exportador: 'Foshan Ceramics Export Co.',
+    referenciaCliente: 'OC-4471',
+    produtos: ['Louças e revestimentos cerâmicos'],
     criadoEm: '2026-07-10',
     atualizadoEm: '2026-07-14',
     comentarios: [
@@ -41,6 +60,9 @@ export const processos: ProcessoImportacao[] = [
     portoDestino: 'GRU',
     previsaoEmbarque: '2026-07-20',
     previsaoChegada: '2026-07-23',
+    exportador: 'Shanghai Steel Parts Ltd.',
+    referenciaCliente: 'PC-2026-018',
+    produtos: ['Peças fundidas de aço'],
     criadoEm: '2026-07-05',
     atualizadoEm: '2026-07-13',
     comentarios: [],
@@ -75,21 +97,18 @@ export const processos: ProcessoImportacao[] = [
         { descricao: 'Taxa Siscomex', valor: 155 },
         { descricao: 'ICMS', valor: 21500 },
       ],
-      dadosBancarios: {
-        banco: 'Banco do Brasil - 001',
-        agencia: '1234-5',
-        conta: '67890-1',
-        pix: '12.345.678/0001-90',
-      },
     },
     numerarioEnviadoEm: '2026-07-14',
+    exportador: 'Sunrise Pharma Exports Ltd.',
+    referenciaCliente: 'IMP-77/2026',
+    produtos: ['BROMOPRIDA'],
     criadoEm: '2026-06-20',
     atualizadoEm: '2026-07-14',
     comentarios: [
       { id: 'c-2', autor: 'Fiorini', texto: 'MAPA liberou a carga, DI em digitação.', criadoEm: '2026-07-11', visivelNoPortal: true, estagio: 'em_transito' },
       { id: 'c-3', autor: 'Fiorini', texto: 'Numerário enviado por e-mail.', criadoEm: '2026-07-14', visivelNoPortal: true, estagio: 'em_transito' },
     ],
-    anexos: [{ id: 'a-1', nomeArquivo: 'numerario-pi-1019.xlsx', tamanhoBytes: 48213, enviadoEm: '2026-07-14' }],
+    anexos: [{ id: 'a-1', nomeArquivo: 'numerario-pi-1019.xlsx', tamanhoBytes: 48213, enviadoEm: '2026-07-14', visivelNoPortal: true }],
   },
   {
     id: 'pi-4',
@@ -102,6 +121,9 @@ export const processos: ProcessoImportacao[] = [
     portoDestino: 'Porto de Itajaí',
     previsaoEmbarque: '2026-06-15',
     previsaoChegada: '2026-07-18',
+    exportador: 'Foshan Ceramics Export Co.',
+    referenciaCliente: 'OC-4402',
+    produtos: ['Porcelanato', 'Argamassa'],
     criadoEm: '2026-06-01',
     atualizadoEm: '2026-07-10',
     comentarios: [
@@ -137,21 +159,18 @@ export const processos: ProcessoImportacao[] = [
         { descricao: 'Taxa Siscomex', valor: 155 },
         { descricao: 'ICMS', valor: 12100 },
       ],
-      dadosBancarios: {
-        banco: 'Banco do Brasil - 001',
-        agencia: '1234-5',
-        conta: '67890-1',
-        pix: '12.345.678/0001-90',
-      },
     },
     numerarioEnviadoEm: '2026-07-02',
     numerarioPagoEm: '2026-07-09',
+    exportador: 'Guangdong Weave Textiles Co.',
+    referenciaCliente: 'PED-3390',
+    produtos: ['Tecido sintético em rolos'],
     criadoEm: '2026-06-15',
     atualizadoEm: '2026-07-12',
     comentarios: [
       { id: 'c-5', autor: 'Fiorini', texto: 'Pagamento do numerário confirmado. DUIMP registrada.', criadoEm: '2026-07-09', visivelNoPortal: true, estagio: 'desembaraco' },
     ],
-    anexos: [{ id: 'a-2', nomeArquivo: 'duimp-pi-1009.pdf', tamanhoBytes: 102344, enviadoEm: '2026-07-09' }],
+    anexos: [{ id: 'a-2', nomeArquivo: 'duimp-pi-1009.pdf', tamanhoBytes: 102344, enviadoEm: '2026-07-09', visivelNoPortal: true }],
   },
   {
     id: 'pi-6',
@@ -164,6 +183,7 @@ export const processos: ProcessoImportacao[] = [
     portoDestino: 'Porto de Paranaguá',
     dataChegada: '2026-07-01',
     numerarioPagoEm: '2026-07-02',
+    produtos: ['Fertilizante NPK'],
     criadoEm: '2026-06-01',
     atualizadoEm: '2026-07-11',
     comentarios: [],
@@ -179,12 +199,13 @@ export const processos: ProcessoImportacao[] = [
     fornecedorFreteId: 'for-2',
     dataChegada: '2026-06-20',
     numerarioPagoEm: '2026-06-21',
+    produtos: ['Rolamentos industriais'],
     criadoEm: '2026-05-28',
     atualizadoEm: '2026-07-01',
     comentarios: [
       { id: 'c-6', autor: 'Fiorini', texto: 'NF emitida, despesas enviadas ao cliente.', criadoEm: '2026-07-01', visivelNoPortal: true, estagio: 'encerramento' },
     ],
-    anexos: [{ id: 'a-3', nomeArquivo: 'nf-pi-0994.pdf', tamanhoBytes: 58211, enviadoEm: '2026-07-01' }],
+    anexos: [{ id: 'a-3', nomeArquivo: 'nf-pi-0994.pdf', tamanhoBytes: 58211, enviadoEm: '2026-07-01', visivelNoPortal: true }],
   },
   {
     id: 'pi-8',
@@ -195,6 +216,7 @@ export const processos: ProcessoImportacao[] = [
     fornecedoresCotadosIds: ['for-3', 'for-4'],
     fornecedorFreteId: 'for-3',
     previsaoEmbarque: '2026-07-25',
+    produtos: [],
     criadoEm: '2026-07-13',
     atualizadoEm: '2026-07-13',
     comentarios: [],

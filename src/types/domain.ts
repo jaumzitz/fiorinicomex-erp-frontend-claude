@@ -1,6 +1,6 @@
 export const PI_STATUSES = [
-  'contratacao_frete',
   'aberto',
+  'contratacao_frete',
   'em_transito',
   'desembaraco',
   'carregamento',
@@ -10,8 +10,8 @@ export const PI_STATUSES = [
 export type PiStatus = (typeof PI_STATUSES)[number]
 
 export const PI_STATUS_LABELS: Record<PiStatus, string> = {
-  contratacao_frete: 'Contratação de Frete',
   aberto: 'Aberto',
+  contratacao_frete: 'Contratação de Frete',
   em_transito: 'Em Trânsito',
   desembaraco: 'Desembaraço',
   carregamento: 'Carregamento',
@@ -57,6 +57,9 @@ export interface Anexo {
   nomeArquivo: string
   tamanhoBytes: number
   enviadoEm: string
+  visivelNoPortal: boolean
+  /** URL local (object URL) do arquivo, quando disponível nesta sessão. */
+  url?: string
 }
 
 export interface ItemTributo {
@@ -77,7 +80,19 @@ export interface Numerario {
   exportador: string
   cotacaoMoeda: number
   tributos: ItemTributo[]
+}
+
+export interface Empresa {
+  nome: string
+  razaoSocial: string
+  cnpj: string
+  responsavel: string
+  endereco: string
+  email: string
+  telefone: string
   dadosBancarios: DadosBancarios
+  logoHorizontalUrl?: string
+  iconeUrl?: string
 }
 
 export interface ProcessoImportacao {
@@ -88,6 +103,8 @@ export interface ProcessoImportacao {
   modal: Modal
   fornecedoresCotadosIds?: string[]
   fornecedorFreteId?: string
+  exportador?: string
+  referenciaCliente?: string
   portoDestino?: string
   previsaoEmbarque?: string
   previsaoChegada?: string
@@ -95,6 +112,7 @@ export interface ProcessoImportacao {
   numerario?: Numerario
   numerarioEnviadoEm?: string
   numerarioPagoEm?: string
+  produtos: string[]
   criadoEm: string
   atualizadoEm: string
   comentarios: Comentario[]

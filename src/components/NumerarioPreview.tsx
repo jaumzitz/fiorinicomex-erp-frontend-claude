@@ -2,6 +2,7 @@ import { Package } from 'lucide-react'
 
 import { Separator } from '@/components/ui/separator'
 import { getCliente } from '@/lib/domain-queries'
+import { useEmpresa } from '@/store/EmpresaContext'
 import type { ProcessoImportacao } from '@/types/domain'
 
 function formatMoeda(valor: number) {
@@ -10,6 +11,7 @@ function formatMoeda(valor: number) {
 }
 
 export function NumerarioPreview({ processo }: { processo: ProcessoImportacao }) {
+  const { empresa } = useEmpresa()
   const numerario = processo.numerario
   if (!numerario) return null
 
@@ -20,19 +22,26 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
     <div className="rounded-md border bg-white p-6 text-sm text-neutral-900">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-2">
-          <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-md">
-            <Package className="size-5" />
-          </div>
-          <div>
-            <div className="font-semibold">Fiorini Comex</div>
-            <div className="text-muted-foreground text-xs">
-              conectando você ao mundo
-            </div>
-          </div>
+          {empresa.logoHorizontalUrl ? (
+            <img src={empresa.logoHorizontalUrl} alt={empresa.nome} className="h-9" />
+          ) : (
+            <>
+              <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-md">
+                {empresa.iconeUrl ? (
+                  <img src={empresa.iconeUrl} alt="" className="size-9 rounded-md object-cover" />
+                ) : (
+                  <Package className="size-5" />
+                )}
+              </div>
+              <div>
+                <div className="font-semibold">{empresa.nome}</div>
+              </div>
+            </>
+          )}
         </div>
         <div className="text-right text-xs text-neutral-600">
-          <div className="font-medium">FIORINI COMERCIO EXTERIOR LTDA</div>
-          <div>Itajaí — SC</div>
+          <div className="font-medium">{empresa.razaoSocial.toUpperCase()}</div>
+          {empresa.endereco && <div>{empresa.endereco}</div>}
         </div>
       </div>
 
@@ -96,13 +105,13 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
       <div className="mt-5 flex items-center justify-between text-xs">
         <div>
           <div className="font-semibold">Dados Bancários:</div>
-          <div>{numerario.dadosBancarios.banco}</div>
-          <div>Ag: {numerario.dadosBancarios.agencia}</div>
-          <div>Conta: {numerario.dadosBancarios.conta}</div>
-          <div>PIX: {numerario.dadosBancarios.pix}</div>
+          <div>{empresa.dadosBancarios.banco}</div>
+          <div>Ag: {empresa.dadosBancarios.agencia}</div>
+          <div>Conta: {empresa.dadosBancarios.conta}</div>
+          <div>PIX: {empresa.dadosBancarios.pix}</div>
         </div>
         <div className="text-right">
-          <div className="font-semibold italic">Fiorini Comercio Exterior Ltda</div>
+          <div className="font-semibold italic">{empresa.razaoSocial}</div>
         </div>
       </div>
     </div>
