@@ -43,6 +43,24 @@ export interface Fornecedor {
   telefone?: string
 }
 
+export interface ContatoEmpresa {
+  id: string
+  nome: string
+  telefone?: string
+  email?: string
+}
+
+export interface EmpresaCadastrada {
+  id: string
+  nomeFantasia: string
+  razaoSocial: string
+  cnpj: string
+  site?: string
+  telefone?: string
+  email?: string
+  contatos: ContatoEmpresa[]
+}
+
 export interface Comentario {
   id: string
   autor: string
@@ -105,6 +123,7 @@ export interface ProcessoImportacao {
   fornecedorFreteId?: string
   exportador?: string
   referenciaCliente?: string
+  origem?: string
   portoDestino?: string
   previsaoEmbarque?: string
   previsaoChegada?: string

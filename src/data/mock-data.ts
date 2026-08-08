@@ -1,4 +1,10 @@
-import type { Cliente, Empresa, Fornecedor, ProcessoImportacao } from '@/types/domain'
+import type {
+  Cliente,
+  Empresa,
+  EmpresaCadastrada,
+  Fornecedor,
+  ProcessoImportacao,
+} from '@/types/domain'
 
 export const clientes: Cliente[] = [
   { id: 'cli-1', nome: 'Cerâmica Bela Vista Ltda', cnpj: '12.345.678/0001-90', email: 'compras@belavista.com.br', telefone: '(11) 4002-8922' },
@@ -13,6 +19,63 @@ export const fornecedoresFrete: Fornecedor[] = [
   { id: 'for-2', nome: 'PRO-ALLOG', contato: 'Marina Suzuki', email: 'comercial@proallog.com.br' },
   { id: 'for-3', nome: 'TRANSIT', contato: 'Carlos Nery', email: 'operacional@transit.com.br' },
   { id: 'for-4', nome: 'AGL', contato: 'Bianca Rocha', email: 'freight@agl.com.br' },
+]
+
+export const empresasCadastradas: EmpresaCadastrada[] = [
+  {
+    id: 'emp-1',
+    nomeFantasia: 'Cerâmica Bela Vista',
+    razaoSocial: 'Cerâmica Bela Vista Ltda',
+    cnpj: '12.345.678/0001-90',
+    site: 'www.belavista.com.br',
+    telefone: '(11) 4002-8922',
+    email: 'compras@belavista.com.br',
+    contatos: [
+      { id: 'ct-1', nome: 'Renata Alves', telefone: '(11) 98822-1140', email: 'renata@belavista.com.br' },
+    ],
+  },
+  {
+    id: 'emp-2',
+    nomeFantasia: 'Metalúrgica Andrade',
+    razaoSocial: 'Metalúrgica Andrade S.A.',
+    cnpj: '23.456.789/0001-01',
+    site: 'www.andrademetal.com.br',
+    telefone: '(19) 3322-1144',
+    email: 'importacao@andrademetal.com.br',
+    contatos: [
+      { id: 'ct-2', nome: 'Paulo Andrade', telefone: '(19) 99711-2233', email: 'paulo@andrademetal.com.br' },
+      { id: 'ct-3', nome: 'Juliana Reis', email: 'juliana@andrademetal.com.br' },
+    ],
+  },
+  {
+    id: 'emp-3',
+    nomeFantasia: 'Distribuidora Pinheiro',
+    razaoSocial: 'Distribuidora Pinheiro Ltda',
+    cnpj: '34.567.890/0001-12',
+    telefone: '',
+    email: 'contato@pinheirodist.com.br',
+    contatos: [],
+  },
+  {
+    id: 'emp-4',
+    nomeFantasia: 'Têxtil Formosa',
+    razaoSocial: 'Têxtil Formosa Indústria Ltda',
+    cnpj: '45.678.901/0001-23',
+    site: 'www.textilformosa.com.br',
+    telefone: '(47) 3011-5566',
+    email: 'financeiro@textilformosa.com.br',
+    contatos: [
+      { id: 'ct-4', nome: 'Marcelo Souza', telefone: '(47) 99123-4455', email: 'marcelo@textilformosa.com.br' },
+    ],
+  },
+  {
+    id: 'emp-5',
+    nomeFantasia: 'AgroMax',
+    razaoSocial: 'AgroMax Insumos Agrícolas Ltda',
+    cnpj: '56.789.012/0001-34',
+    email: 'agromax@agromax.agr.br',
+    contatos: [],
+  },
 ]
 
 export const empresaPadrao: Empresa = {
@@ -57,6 +120,7 @@ export const processos: ProcessoImportacao[] = [
     modal: 'aereo',
     fornecedoresCotadosIds: ['for-2', 'for-1'],
     fornecedorFreteId: 'for-2',
+    origem: 'Xangai, China',
     portoDestino: 'GRU',
     previsaoEmbarque: '2026-07-20',
     previsaoChegada: '2026-07-23',
@@ -76,6 +140,7 @@ export const processos: ProcessoImportacao[] = [
     modal: 'maritimo',
     fornecedoresCotadosIds: ['for-1', 'for-3', 'for-4'],
     fornecedorFreteId: 'for-1',
+    origem: 'Mumbai, Índia',
     portoDestino: 'Porto de Santos',
     previsaoEmbarque: '2026-06-28',
     previsaoChegada: '2026-07-22',
@@ -118,6 +183,7 @@ export const processos: ProcessoImportacao[] = [
     modal: 'maritimo',
     fornecedoresCotadosIds: ['for-3', 'for-2'],
     fornecedorFreteId: 'for-3',
+    origem: 'Shenzhen, China',
     portoDestino: 'Porto de Itajaí',
     previsaoEmbarque: '2026-06-15',
     previsaoChegada: '2026-07-18',
@@ -180,6 +246,7 @@ export const processos: ProcessoImportacao[] = [
     modal: 'maritimo',
     fornecedoresCotadosIds: ['for-1', 'for-4'],
     fornecedorFreteId: 'for-1',
+    origem: 'Rosário, Argentina',
     portoDestino: 'Porto de Paranaguá',
     dataChegada: '2026-07-01',
     numerarioPagoEm: '2026-07-02',

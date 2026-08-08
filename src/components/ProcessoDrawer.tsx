@@ -7,6 +7,8 @@ import {
   Eye,
   Download,
   Boxes,
+  Route,
+  Wallet,
   X,
 } from 'lucide-react'
 
@@ -24,6 +26,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { EditableField } from '@/components/EditableField'
+import { ModalIcon } from '@/components/ModalIcon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -53,30 +57,6 @@ import {
   type PiStatus,
   type ProcessoImportacao,
 } from '@/types/domain'
-
-function EditableField({
-  label,
-  value,
-  onChange,
-  type = 'text',
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  type?: 'text' | 'date'
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label className="text-muted-foreground text-xs font-normal">{label}</Label>
-      <Input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8"
-      />
-    </div>
-  )
-}
 
 function AnexoRow({
   anexo,
@@ -258,17 +238,6 @@ export function ProcessoDrawer({
             </Select>
           </div>
           <SheetDescription>{cliente?.nome}</SheetDescription>
-          {processo.numerario && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-1 w-fit"
-              onClick={() => setNumerarioAberto(true)}
-            >
-              <FileText className="size-4" />
-              Ver Numerário
-            </Button>
-          )}
         </SheetHeader>
 
         {processo.numerario && (
@@ -291,6 +260,7 @@ export function ProcessoDrawer({
 
         <Separator />
 
+        {/* Informações primárias */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 px-5 py-5">
           <div className="flex flex-col gap-1">
             <Label className="text-muted-foreground text-xs font-normal">Cliente</Label>
@@ -300,73 +270,146 @@ export function ProcessoDrawer({
             <Label className="text-muted-foreground text-xs font-normal">CNPJ</Label>
             <span className="text-sm">{cliente?.cnpj}</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <Label className="text-muted-foreground text-xs font-normal">Modal</Label>
-            <Select
-              value={processo.modal}
-              onValueChange={(v) => atualizarProcesso(processo.id, { modal: v as Modal })}
-            >
-              <SelectTrigger size="sm" className="h-8 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(MODAL_LABELS).map(([valor, label]) => (
-                  <SelectItem key={valor} value={valor}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="col-span-2">
+            <EditableField
+              label="Exportador"
+              value={processo.exportador ?? ''}
+              onChange={(v) => patch('exportador', v)}
+            />
           </div>
-          <EditableField
-            label="Exportador"
-            value={processo.exportador ?? ''}
-            onChange={(v) => patch('exportador', v)}
-          />
-          <EditableField
-            label="Referência cliente"
-            value={processo.referenciaCliente ?? ''}
-            onChange={(v) => patch('referenciaCliente', v)}
-          />
-          <EditableField
-            label="Porto de destino"
-            value={processo.portoDestino ?? ''}
-            onChange={(v) => patch('portoDestino', v)}
-          />
-          <EditableField
-            label="Previsão de embarque"
-            type="date"
-            value={processo.previsaoEmbarque ?? ''}
-            onChange={(v) => patch('previsaoEmbarque', v)}
-          />
-          <EditableField
-            label="Previsão de chegada"
-            type="date"
-            value={processo.previsaoChegada ?? ''}
-            onChange={(v) => patch('previsaoChegada', v)}
-          />
-          <EditableField
-            label="Data de chegada"
-            type="date"
-            value={processo.dataChegada ?? ''}
-            onChange={(v) => patch('dataChegada', v)}
-          />
-          <EditableField
-            label="Numerário enviado em"
-            type="date"
-            value={processo.numerarioEnviadoEm ?? ''}
-            onChange={(v) => patch('numerarioEnviadoEm', v)}
-          />
-          <EditableField
-            label="Numerário pago em"
-            type="date"
-            value={processo.numerarioPagoEm ?? ''}
-            onChange={(v) => patch('numerarioPagoEm', v)}
-          />
+          <div className="col-span-2">
+            <EditableField
+              label="Referência cliente"
+              value={processo.referenciaCliente ?? ''}
+              onChange={(v) => patch('referenciaCliente', v)}
+            />
+          </div>
         </div>
 
         <Separator />
 
+        {/* Transporte */}
+        <div className="flex flex-col gap-3 px-5 py-5">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Route className="size-4" />
+            Transporte
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <div className="col-span-2 flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs font-normal">Modal</Label>
+              <Select
+                value={processo.modal}
+                onValueChange={(v) => atualizarProcesso(processo.id, { modal: v as Modal })}
+              >
+                <SelectTrigger size="sm" className="h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(MODAL_LABELS).map(([valor, label]) => (
+                    <SelectItem key={valor} value={valor}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <ModalIcon modal={valor as Modal} className="size-4" />
+                        {label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <EditableField
+              label="Origem"
+              value={processo.origem ?? ''}
+              onChange={(v) => patch('origem', v)}
+            />
+            <EditableField
+              label="Destino"
+              value={processo.portoDestino ?? ''}
+              onChange={(v) => patch('portoDestino', v)}
+            />
+            <EditableField
+              label="Previsão de embarque"
+              type="date"
+              value={processo.previsaoEmbarque ?? ''}
+              onChange={(v) => patch('previsaoEmbarque', v)}
+            />
+            <EditableField
+              label="Previsão de chegada"
+              type="date"
+              value={processo.previsaoChegada ?? ''}
+              onChange={(v) => patch('previsaoChegada', v)}
+            />
+            <div className="col-span-2">
+              <EditableField
+                label="Data de chegada"
+                type="date"
+                value={processo.dataChegada ?? ''}
+                onChange={(v) => patch('dataChegada', v)}
+              />
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-col gap-3 border-t pt-4">
+            <span className="text-sm font-medium">Frete internacional</span>
+            <p className="text-muted-foreground text-xs">
+              Selecione os fornecedores com quem foi solicitada cotação para este
+              processo.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {fornecedoresFrete.map((f) => {
+                const cotado = cotados.includes(f.id)
+                const aceito = f.id === processo.fornecedorFreteId
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => alternarFornecedorCotado(processo.id, f.id)}
+                  >
+                    <Badge
+                      variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
+                      className="cursor-pointer"
+                    >
+                      {f.nome}
+                      {aceito ? ' · Aceito' : ''}
+                    </Badge>
+                  </button>
+                )
+              })}
+            </div>
+            {cotados.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <Label className="text-muted-foreground text-xs font-normal">
+                  Fornecedor aceito
+                </Label>
+                <Select
+                  value={processo.fornecedorFreteId ?? 'nenhum'}
+                  onValueChange={(v) =>
+                    definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
+                  }
+                >
+                  <SelectTrigger size="sm" className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
+                    {cotados.map((id) => {
+                      const f = fornecedoresFrete.find((f) => f.id === id)
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {f?.nome}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Produtos */}
         <div className="flex flex-col gap-3 px-5 py-5">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Boxes className="size-4" />
@@ -417,65 +460,44 @@ export function ProcessoDrawer({
 
         <Separator />
 
+        {/* Financeiro */}
         <div className="flex flex-col gap-3 px-5 py-5">
-          <span className="text-sm font-medium">Frete internacional</span>
-          <p className="text-muted-foreground text-xs">
-            Selecione os fornecedores com quem foi solicitada cotação para este
-            processo.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {fornecedoresFrete.map((f) => {
-              const cotado = cotados.includes(f.id)
-              const aceito = f.id === processo.fornecedorFreteId
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => alternarFornecedorCotado(processo.id, f.id)}
-                >
-                  <Badge
-                    variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
-                    className="cursor-pointer"
-                  >
-                    {f.nome}
-                    {aceito ? ' · Aceito' : ''}
-                  </Badge>
-                </button>
-              )
-            })}
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Wallet className="size-4" />
+            Financeiro
           </div>
-          {cotados.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <Label className="text-muted-foreground text-xs font-normal">
-                Fornecedor aceito
-              </Label>
-              <Select
-                value={processo.fornecedorFreteId ?? 'nenhum'}
-                onValueChange={(v) =>
-                  definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
-                }
-              >
-                <SelectTrigger size="sm" className="h-8 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Nenhum</SelectItem>
-                  {cotados.map((id) => {
-                    const f = fornecedoresFrete.find((f) => f.id === id)
-                    return (
-                      <SelectItem key={id} value={id}>
-                        {f?.nome}
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+
+          {processo.numerario && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-fit"
+              onClick={() => setNumerarioAberto(true)}
+            >
+              <FileText className="size-4" />
+              Ver Numerário
+            </Button>
           )}
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <EditableField
+              label="Data de emissão"
+              type="date"
+              value={processo.numerarioEnviadoEm ?? ''}
+              onChange={(v) => patch('numerarioEnviadoEm', v)}
+            />
+            <EditableField
+              label="Data de pagamento"
+              type="date"
+              value={processo.numerarioPagoEm ?? ''}
+              onChange={(v) => patch('numerarioPagoEm', v)}
+            />
+          </div>
         </div>
 
         <Separator />
 
+        {/* Anexos */}
         <div className="flex flex-col gap-3 px-5 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -519,6 +541,7 @@ export function ProcessoDrawer({
 
         <Separator />
 
+        {/* Comentários */}
         <div className="flex flex-col gap-3 px-5 py-5">
           <div className="flex items-center gap-2 text-sm font-medium">
             <MessageSquare className="size-4" />
