@@ -1,12 +1,15 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Paperclip,
   MessageSquare,
   FileText,
   Plus,
+  Check,
+  Container,
   Eye,
   Download,
   Boxes,
+  Landmark,
   Route,
   Wallet,
   X,
@@ -28,12 +31,14 @@ import {
 } from '@/components/ui/dialog'
 import { EditableField } from '@/components/EditableField'
 import { ModalIcon } from '@/components/ModalIcon'
+import { SecaoDrawer } from '@/components/SecaoDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -52,10 +57,12 @@ import {
   MODAL_LABELS,
   PI_STATUSES,
   PI_STATUS_LABELS,
+  TIPO_CARGA_LABELS,
   type Anexo,
   type Modal,
   type PiStatus,
   type ProcessoImportacao,
+  type TipoCarga,
 } from '@/types/domain'
 
 function AnexoRow({
@@ -170,10 +177,34 @@ export function ProcessoDrawer({
   const [novoProduto, setNovoProduto] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [transporteAberto, setTransporteAberto] = useState(true)
+  const [freteAberto, setFreteAberto] = useState(
+    () => (processo?.fornecedoresCotadosIds?.length ?? 0) > 0,
+  )
+  const [produtosAberto, setProdutosAberto] = useState(true)
+  const [financeiroAberto, setFinanceiroAberto] = useState(true)
+  const [desembaracoAberto, setDesembaracoAberto] = useState(true)
+  const [anexosAberto, setAnexosAberto] = useState(true)
+  const [comentariosAberto, setComentariosAberto] = useState(true)
+
+  useEffect(() => {
+    if (open && processo) {
+      document.title = `${processo.numero} | ERP Fiorini Comex`
+    }
+    return () => {
+      document.title = 'ERP Fiorini Comex'
+    }
+  }, [open, processo?.numero])
+
+  useEffect(() => {
+    setFreteAberto((processo?.fornecedoresCotadosIds?.length ?? 0) > 0)
+  }, [processo?.id])
+
   if (!processo) return null
 
   const cliente = getCliente(processo.clienteId)
   const cotados = processo.fornecedoresCotadosIds ?? []
+  const maritimo = processo.modal === 'maritimo'
 
   function patch(campo: keyof ProcessoImportacao, valor: string) {
     atualizarProcesso(processo!.id, { [campo]: valor || undefined })
@@ -288,15 +319,14 @@ export function ProcessoDrawer({
 
         <Separator />
 
-        {/* Transporte */}
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Route className="size-4" />
-            Transporte
-          </div>
-
+        <SecaoDrawer
+          icon={Route}
+          titulo="Transporte"
+          aberto={transporteAberto}
+          onToggle={() => setTransporteAberto((v) => !v)}
+        >
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-            <div className="col-span-2 flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <Label className="text-muted-foreground text-xs font-normal">Modal</Label>
               <Select
                 value={processo.modal}
@@ -317,6 +347,46 @@ export function ProcessoDrawer({
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs font-normal">
+                Licença de Importação (LI)
+              </Label>
+              <div className="flex h-8 items-center gap-2">
+                <Switch
+                  checked={!!processo.licencaImportacao}
+                  onCheckedChange={(v) =>
+                    atualizarProcesso(processo.id, { licencaImportacao: v })
+                  }
+                />
+                <span className="text-sm">
+                  {processo.licencaImportacao ? 'Necessária' : 'Não necessária'}
+                </span>
+              </div>
+            </div>
+            {maritimo && (
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label className="text-muted-foreground text-xs font-normal">
+                  Tipo de carga
+                </Label>
+                <Select
+                  value={processo.tipoCarga ?? ''}
+                  onValueChange={(v) =>
+                    atualizarProcesso(processo.id, { tipoCarga: v as TipoCarga })
+                  }
+                >
+                  <SelectTrigger size="sm" className="h-8 w-full">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TIPO_CARGA_LABELS).map(([valor, label]) => (
+                      <SelectItem key={valor} value={valor}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <EditableField
               label="Origem"
               value={processo.origem ?? ''}
@@ -339,83 +409,127 @@ export function ProcessoDrawer({
               value={processo.previsaoChegada ?? ''}
               onChange={(v) => patch('previsaoChegada', v)}
             />
-            <div className="col-span-2">
+            <div className={maritimo ? '' : 'col-span-2'}>
               <EditableField
-                label="Data de chegada"
-                type="date"
-                value={processo.dataChegada ?? ''}
-                onChange={(v) => patch('dataChegada', v)}
+                label="HBL / HAWB"
+                value={processo.hblHawb ?? ''}
+                onChange={(v) => patch('hblHawb', v)}
               />
             </div>
-          </div>
-
-          <div className="mt-2 flex flex-col gap-3 border-t pt-4">
-            <span className="text-sm font-medium">Frete internacional</span>
-            <p className="text-muted-foreground text-xs">
-              Selecione os fornecedores com quem foi solicitada cotação para este
-              processo.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {fornecedoresFrete.map((f) => {
-                const cotado = cotados.includes(f.id)
-                const aceito = f.id === processo.fornecedorFreteId
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => alternarFornecedorCotado(processo.id, f.id)}
-                  >
-                    <Badge
-                      variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
-                      className="cursor-pointer"
-                    >
-                      {f.nome}
-                      {aceito ? ' · Aceito' : ''}
-                    </Badge>
-                  </button>
-                )
-              })}
-            </div>
-            {cotados.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <Label className="text-muted-foreground text-xs font-normal">
-                  Fornecedor aceito
-                </Label>
-                <Select
-                  value={processo.fornecedorFreteId ?? 'nenhum'}
-                  onValueChange={(v) =>
-                    definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
-                  }
-                >
-                  <SelectTrigger size="sm" className="h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nenhum">Nenhum</SelectItem>
-                    {cotados.map((id) => {
-                      const f = fornecedoresFrete.find((f) => f.id === id)
-                      return (
-                        <SelectItem key={id} value={id}>
-                          {f?.nome}
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            {maritimo && (
+              <EditableField
+                label="CE Mercante"
+                value={processo.conhecimentoEmbarque ?? ''}
+                onChange={(v) => patch('conhecimentoEmbarque', v)}
+              />
             )}
+            <div className="col-span-2">
+              <EditableField
+                label="Liberação MAPA"
+                type="date"
+                value={processo.dataLiberacaoMapa ?? ''}
+                onChange={(v) => patch('dataLiberacaoMapa', v)}
+              />
+            </div>
+            <EditableField
+              label="Data de chegada"
+              type="date"
+              value={processo.dataChegada ?? ''}
+              onChange={(v) => patch('dataChegada', v)}
+            />
+            <EditableField
+              label="Presença de carga"
+              type="date"
+              value={processo.dataPresencaCarga ?? ''}
+              onChange={(v) => patch('dataPresencaCarga', v)}
+            />
           </div>
-        </div>
+        </SecaoDrawer>
 
         <Separator />
 
-        {/* Produtos */}
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Boxes className="size-4" />
-            Produtos
-            <Badge variant="secondary">{processo.produtos.length}</Badge>
+        <SecaoDrawer
+          icon={Container}
+          titulo="Frete internacional"
+          badge={
+            cotados.length > 0 && <Badge variant="secondary">{cotados.length}</Badge>
+          }
+          acoes={
+            processo.status === 'contratacao_frete' && cotados.length === 0 ? (
+              <Button size="sm" variant="outline" onClick={() => setFreteAberto(true)}>
+                <Plus className="size-4" />
+                Adicionar cotação
+              </Button>
+            ) : undefined
+          }
+          aberto={freteAberto}
+          onToggle={() => setFreteAberto((v) => !v)}
+        >
+          <p className="text-muted-foreground text-xs">
+            Selecione os fornecedores com quem foi solicitada cotação para este
+            processo.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {fornecedoresFrete.map((f) => {
+              const cotado = cotados.includes(f.id)
+              const aceito = f.id === processo.fornecedorFreteId
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => alternarFornecedorCotado(processo.id, f.id)}
+                >
+                  <Badge
+                    variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
+                    className="cursor-pointer"
+                  >
+                    {cotado && <Check />}
+                    {f.nome}
+                    {aceito ? ' · Aceito' : ''}
+                  </Badge>
+                </button>
+              )
+            })}
           </div>
+          {cotados.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs font-normal">
+                Fornecedor aceito
+              </Label>
+              <Select
+                value={processo.fornecedorFreteId ?? 'nenhum'}
+                onValueChange={(v) =>
+                  definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
+                }
+              >
+                <SelectTrigger size="sm" className="h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Nenhum</SelectItem>
+                  {cotados.map((id) => {
+                    const f = fornecedoresFrete.find((f) => f.id === id)
+                    return (
+                      <SelectItem key={id} value={id}>
+                        {f?.nome}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </SecaoDrawer>
+
+        <Separator />
+
+        <SecaoDrawer
+          icon={Boxes}
+          titulo="Produtos"
+          badge={<Badge variant="secondary">{processo.produtos.length}</Badge>}
+          aberto={produtosAberto}
+          onToggle={() => setProdutosAberto((v) => !v)}
+        >
           {processo.produtos.length > 0 && (
             <ul className="flex flex-wrap gap-2">
               {processo.produtos.map((produto) => (
@@ -456,17 +570,16 @@ export function ProcessoDrawer({
               <Plus className="size-4" />
             </Button>
           </div>
-        </div>
+        </SecaoDrawer>
 
         <Separator />
 
-        {/* Financeiro */}
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Wallet className="size-4" />
-            Financeiro
-          </div>
-
+        <SecaoDrawer
+          icon={Wallet}
+          titulo="Financeiro"
+          aberto={financeiroAberto}
+          onToggle={() => setFinanceiroAberto((v) => !v)}
+        >
           {processo.numerario && (
             <Button
               size="sm"
@@ -493,30 +606,73 @@ export function ProcessoDrawer({
               onChange={(v) => patch('numerarioPagoEm', v)}
             />
           </div>
-        </div>
+        </SecaoDrawer>
 
         <Separator />
 
-        {/* Anexos */}
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Paperclip className="size-4" />
-              Anexos
-              <Badge variant="secondary">{processo.anexos.length}</Badge>
+        <SecaoDrawer
+          icon={Landmark}
+          titulo="Desembaraço"
+          aberto={desembaracoAberto}
+          onToggle={() => setDesembaracoAberto((v) => !v)}
+        >
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <div className="col-span-2">
+              <EditableField
+                label="Nº DI"
+                value={processo.numeroDi ?? ''}
+                onChange={(v) => patch('numeroDi', v)}
+              />
             </div>
-            <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <EditableField
+              label="Data do CI"
+              type="date"
+              value={processo.dataCi ?? ''}
+              onChange={(v) => patch('dataCi', v)}
+            />
+            <EditableField
+              label="Siscarga"
+              type="date"
+              value={processo.dataSiscargo ?? ''}
+              onChange={(v) => patch('dataSiscargo', v)}
+            />
+            <div className="col-span-2">
+              <EditableField
+                label="Pagamento ICMS"
+                type="date"
+                value={processo.dataIcms ?? ''}
+                onChange={(v) => patch('dataIcms', v)}
+              />
+            </div>
+          </div>
+        </SecaoDrawer>
+
+        <Separator />
+
+        <SecaoDrawer
+          icon={Paperclip}
+          titulo="Anexos"
+          badge={<Badge variant="secondary">{processo.anexos.length}</Badge>}
+          acoes={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Plus className="size-4" />
               Adicionar
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={selecionarArquivos}
-            />
-          </div>
+          }
+          aberto={anexosAberto}
+          onToggle={() => setAnexosAberto((v) => !v)}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={selecionarArquivos}
+          />
           {processo.anexos.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum anexo.</p>
           ) : (
@@ -537,18 +693,17 @@ export function ProcessoDrawer({
             Upload local por enquanto — o armazenamento real dos arquivos entra
             quando o back-end (Supabase Storage) for integrado.
           </p>
-        </div>
+        </SecaoDrawer>
 
         <Separator />
 
-        {/* Comentários */}
-        <div className="flex flex-col gap-3 px-5 py-5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <MessageSquare className="size-4" />
-            Comentários
-            <Badge variant="secondary">{processo.comentarios.length}</Badge>
-          </div>
-
+        <SecaoDrawer
+          icon={MessageSquare}
+          titulo="Comentários"
+          badge={<Badge variant="secondary">{processo.comentarios.length}</Badge>}
+          aberto={comentariosAberto}
+          onToggle={() => setComentariosAberto((v) => !v)}
+        >
           {processo.comentarios.length > 0 && (
             <ul className="flex flex-col gap-3">
               {processo.comentarios.map((c) => (
@@ -601,7 +756,7 @@ export function ProcessoDrawer({
               </Button>
             </div>
           </div>
-        </div>
+        </SecaoDrawer>
       </SheetContent>
     </Sheet>
   )
