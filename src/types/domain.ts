@@ -27,6 +27,13 @@ export const MODAL_LABELS: Record<Modal, string> = {
   ferroviario: 'Ferroviário',
 }
 
+export type TipoCarga = 'FCL' | 'LCL'
+
+export const TIPO_CARGA_LABELS: Record<TipoCarga, string> = {
+  FCL: 'FCL — Container fechado',
+  LCL: 'LCL — Carga consolidada',
+}
+
 export interface Cliente {
   id: string
   nome: string
@@ -123,14 +130,24 @@ export interface ProcessoImportacao {
   fornecedorFreteId?: string
   exportador?: string
   referenciaCliente?: string
+  licencaImportacao?: boolean
+  tipoCarga?: TipoCarga
   origem?: string
   portoDestino?: string
   previsaoEmbarque?: string
   previsaoChegada?: string
+  hblHawb?: string
+  conhecimentoEmbarque?: string
+  dataLiberacaoMapa?: string
   dataChegada?: string
+  dataPresencaCarga?: string
   numerario?: Numerario
   numerarioEnviadoEm?: string
   numerarioPagoEm?: string
+  numeroDi?: string
+  dataCi?: string
+  dataSiscargo?: string
+  dataIcms?: string
   produtos: string[]
   criadoEm: string
   atualizadoEm: string
