@@ -30,6 +30,27 @@
 
 Modais de transporte suportados: **marítimo, rodoviário, aéreo, ferroviário**.
 
+## 2.1 Campos identificados na planilha atual (2026-07-17)
+
+Colunas encontradas na planilha de controle usada hoje pela Fiorini, ainda não mapeadas nas telas do sistema. Significado levantado por interpretação do domínio — **nenhum destes está confirmado pelo usuário ainda**.
+
+| Coluna | Tipo | Significado (a confirmar) |
+|---|---|---|
+| LI | booleano | Licença de Importação — autorização prévia (antes do embarque) exigida só para produtos sujeitos a controle de órgão anuente (Anvisa, MAPA, Inmetro etc.). Booleano porque nem todo PI precisa |
+| ETD | data | Estimated Time of Departure — previsão de **saída** da carga na origem |
+| ETA | data | Estimated Time of Arrival — previsão de **chegada** no destino (equivalente à "previsão de chegada" já modelada) |
+| HBL / HAWB | número | House Bill of Lading / House Air Waybill — conhecimento de embarque emitido pelo agente de carga (forwarder) direto ao cliente, distinto do Master BL/AWB emitido pelo armador/companhia aérea |
+| LCL / FCL | enum (FCL \| LCL) | Só carga marítima. FCL = container fechado só com carga do cliente. LCL = carga consolidada, dividindo container com outros embarcadores |
+| CE | número | Conhecimento de Embarque (mesmo "CE Mercante" já no glossário) — nº do conhecimento eletrônico no Siscomex Carga, obrigatório para carga marítima |
+| MAPA | data | Data em que o MAPA liberou a carga (já documentado na seção 3, etapa "Em Trânsito") |
+| PRESENCA | data | Data do registro de "presença de carga" no Siscomex — confirmação, feita pelo recinto, de que a mercadoria chegou fisicamente e está disponível para desembaraço. Pré-requisito para registrar a DI |
+| DI | string | Nº de registro da Declaração de Importação no Siscomex |
+| CI | data | **[A CONFIRMAR]** Hipótese: Comprovante de Importação, documento/recibo gerado junto com o registro da DI — data de emissão |
+| SISCARGO | data | **[A CONFIRMAR]** Hipótese: data de registro/vinculação no módulo Siscomex Carga (controle logístico da carga) — pode ser redundante com PRESENCA, marcando o mesmo evento em outro momento, ou pode ser algo distinto |
+| ICMS | data | Data de pagamento do ICMS (imposto estadual) via GNRE — trâmite separado dos tributos federais já cobertos no Numerário |
+
+> **[A CONFIRMAR]** Todos os significados acima, especialmente **CI** e **SISCARGO**, que têm menor confiança de interpretação. Depois de confirmados, decidir onde cada campo entra no modelo do PI (a maioria se encaixa na seção "Transporte" do drawer; DI/CI/ICMS provavelmente formam uma nova sub-seção "Desembaraço").
+
 ---
 
 ## 3. Processo principal — fluxo de um PI (fonte: BPMN)
@@ -195,3 +216,5 @@ Como pedido, aqui vão pontos que fazem sentido dado o porte da operação. São
 - [ ] Recuperar a planilha atual (tem uma aba por status — útil como referência de campos e para migração de dados históricos, se houver)
 - [ ] Decidir hospedagem (Hostinger VPS / AWS / Vercel)
 - [ ] Reenviar "documentação adicional" — o briefing original parece ter sido cortado antes de anexá-la
+- [ ] Confirmar significado dos campos da planilha atual (seção 2.1), em especial **CI** e **SISCARGO**
+- [ ] Decidir onde os campos da seção 2.1 entram no modelo do PI e nas telas
