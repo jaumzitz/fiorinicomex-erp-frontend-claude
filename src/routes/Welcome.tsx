@@ -112,7 +112,7 @@ export default function Welcome() {
                     <Wallet className="text-muted-foreground size-4 shrink-0" />
                     <span className="font-medium">{p.numero}</span>
                     <span className="text-muted-foreground">
-                      {getCliente(p.clienteId)?.nome} — numerário enviado em{' '}
+                      {getCliente(p.clienteId)?.nomeFantasia} — numerário enviado em{' '}
                       {formatarData(p.numerarioEnviadoEm)}, ainda sem confirmação de
                       pagamento
                     </span>
@@ -135,7 +135,7 @@ export default function Welcome() {
               {embarques.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
                   <span>
-                    {p.numero} — {getCliente(p.clienteId)?.nome}
+                    {p.numero} — {getCliente(p.clienteId)?.nomeFantasia}
                   </span>
                   <span className="text-muted-foreground">
                     {formatarData(p.previsaoEmbarque)}
@@ -158,7 +158,7 @@ export default function Welcome() {
               {chegadas.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
                   <span>
-                    {p.numero} — {getCliente(p.clienteId)?.nome}
+                    {p.numero} — {getCliente(p.clienteId)?.nomeFantasia}
                   </span>
                   <span className="text-muted-foreground">
                     {formatarData(p.previsaoChegada)}

@@ -2,7 +2,7 @@ import { Package } from 'lucide-react'
 
 import { Separator } from '@/components/ui/separator'
 import { getCliente } from '@/lib/domain-queries'
-import { useEmpresa } from '@/store/EmpresaContext'
+import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 import type { ProcessoImportacao } from '@/types/domain'
 
 function formatMoeda(valor: number) {
@@ -11,7 +11,7 @@ function formatMoeda(valor: number) {
 }
 
 export function NumerarioPreview({ processo }: { processo: ProcessoImportacao }) {
-  const { empresa } = useEmpresa()
+  const { empresa } = useEmpresaConfig()
   const numerario = processo.numerario
   if (!numerario) return null
 
@@ -57,7 +57,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 border border-t-0 p-3">
         <div>
           <span className="text-muted-foreground">Cliente: </span>
-          {cliente?.nome}
+          {cliente?.nomeFantasia}
         </div>
         <div>
           <span className="text-muted-foreground">Produto: </span>

@@ -2,13 +2,13 @@ import { Building2, Mail, Phone } from 'lucide-react'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { EmpresaCadastrada } from '@/types/domain'
+import { TIPO_RELACIONAMENTO_EMPRESA_LABELS, type Empresa } from '@/types/domain'
 
 export function EmpresasCards({
   empresas,
   onSelecionar,
 }: {
-  empresas: EmpresaCadastrada[]
+  empresas: Empresa[]
   onSelecionar: (id: string) => void
 }) {
   if (empresas.length === 0) {
@@ -37,11 +37,20 @@ export function EmpresasCards({
               </Badge>
             </div>
             <span className="text-muted-foreground truncate text-sm">{e.razaoSocial}</span>
+            <div className="flex flex-wrap gap-1">
+              {e.tiposRelacionamento.map((tipo) => (
+                <Badge key={tipo} variant="outline" className="text-xs font-normal">
+                  {TIPO_RELACIONAMENTO_EMPRESA_LABELS[tipo]}
+                </Badge>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-1.5 px-4 text-sm">
             <div className="flex items-center gap-1.5">
               <Building2 className="text-muted-foreground size-3.5 shrink-0" />
-              <span className="text-muted-foreground">{e.cnpj}</span>
+              <span className="text-muted-foreground">
+                {e.estrangeira ? [e.taxId, e.pais].filter(Boolean).join(' — ') : e.cnpj}
+              </span>
             </div>
             {e.telefone && (
               <div className="flex items-center gap-1.5">

@@ -49,7 +49,7 @@ export function colunasIniciais(): ColunaEstado[] {
 export function celulaColuna(p: ProcessoImportacao, id: ColunaId): string {
   switch (id) {
     case 'cliente':
-      return getCliente(p.clienteId)?.nome ?? '—'
+      return getCliente(p.clienteId)?.nomeFantasia ?? '—'
     case 'estagio':
       return ''
     case 'modal':

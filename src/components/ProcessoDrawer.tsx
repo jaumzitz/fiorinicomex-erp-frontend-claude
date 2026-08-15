@@ -13,6 +13,8 @@ import {
   Route,
   Wallet,
   X,
+  FoldVertical,
+  UnfoldVertical,
 } from 'lucide-react'
 
 import {
@@ -51,7 +53,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { NumerarioPreview } from '@/components/NumerarioPreview'
 import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
-import { fornecedoresFrete } from '@/data/mock-data'
+import { empresas } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
 import {
   MODAL_LABELS,
@@ -150,6 +152,16 @@ function AnexoRow({
   )
 }
 
+const SECOES_PADRAO: Record<string, boolean> = {
+  transporte: true,
+  frete: false,
+  produtos: false,
+  financeiro: false,
+  desembaraco: false,
+  anexos: false,
+  comentarios: false,
+}
+
 export function ProcessoDrawer({
   processo,
   open,
@@ -177,15 +189,28 @@ export function ProcessoDrawer({
   const [novoProduto, setNovoProduto] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [transporteAberto, setTransporteAberto] = useState(true)
-  const [freteAberto, setFreteAberto] = useState(
-    () => (processo?.fornecedoresCotadosIds?.length ?? 0) > 0,
-  )
-  const [produtosAberto, setProdutosAberto] = useState(true)
-  const [financeiroAberto, setFinanceiroAberto] = useState(true)
-  const [desembaracoAberto, setDesembaracoAberto] = useState(true)
-  const [anexosAberto, setAnexosAberto] = useState(true)
-  const [comentariosAberto, setComentariosAberto] = useState(true)
+  const [secoesAbertas, setSecoesAbertas] = useState<Record<string, boolean>>(SECOES_PADRAO)
+
+  useEffect(() => {
+    setSecoesAbertas(SECOES_PADRAO)
+  }, [processo?.id])
+
+  function alternarSecao(chave: string) {
+    setSecoesAbertas((atual) => ({ ...atual, [chave]: !atual[chave] }))
+  }
+
+  function abrirSecao(chave: string) {
+    setSecoesAbertas((atual) => ({ ...atual, [chave]: true }))
+  }
+
+  const todasAbertas = Object.values(secoesAbertas).every(Boolean)
+
+  function alternarTodasSecoes() {
+    const novoValor = !todasAbertas
+    setSecoesAbertas(
+      Object.fromEntries(Object.keys(SECOES_PADRAO).map((chave) => [chave, novoValor])),
+    )
+  }
 
   useEffect(() => {
     if (open && processo) {
@@ -196,13 +221,10 @@ export function ProcessoDrawer({
     }
   }, [open, processo?.numero])
 
-  useEffect(() => {
-    setFreteAberto((processo?.fornecedoresCotadosIds?.length ?? 0) > 0)
-  }, [processo?.id])
-
   if (!processo) return null
 
   const cliente = getCliente(processo.clienteId)
+  const fornecedoresFrete = empresas.filter((e) => e.tiposRelacionamento.includes('fornecedor_frete'))
   const cotados = processo.fornecedoresCotadosIds ?? []
   const maritimo = processo.modal === 'maritimo'
 
@@ -253,23 +275,42 @@ export function ProcessoDrawer({
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col gap-0.5">
               <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
-              <SheetDescription>{cliente?.nome}</SheetDescription>
+              <SheetDescription>{cliente?.nomeFantasia}</SheetDescription>
             </div>
-            <Select
-              value={processo.status}
-              onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
-            >
-              <SelectTrigger size="sm" className="h-7 w-fit shrink-0 border-none px-2 shadow-none">
-                <StatusBadge status={processo.status} />
-              </SelectTrigger>
-              <SelectContent>
-                {PI_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {PI_STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                title={todasAbertas ? 'Recolher todas as seções' : 'Expandir todas as seções'}
+                onClick={alternarTodasSecoes}
+              >
+                {todasAbertas ? (
+                  <FoldVertical className="size-4" />
+                ) : (
+                  <UnfoldVertical className="size-4" />
+                )}
+              </Button>
+              <Select
+                value={processo.status}
+                onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-7 w-fit shrink-0 border-none px-2 shadow-none"
+                >
+                  <StatusBadge status={processo.status} />
+                </SelectTrigger>
+                <SelectContent>
+                  {PI_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {PI_STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </SheetHeader>
 
@@ -297,7 +338,7 @@ export function ProcessoDrawer({
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 px-5 py-5">
           <div className="flex flex-col gap-1">
             <Label className="text-muted-foreground text-xs font-normal">Cliente</Label>
-            <span className="text-sm">{cliente?.nome}</span>
+            <span className="text-sm">{cliente?.nomeFantasia}</span>
           </div>
           <div className="flex flex-col gap-1">
             <Label className="text-muted-foreground text-xs font-normal">CNPJ</Label>
@@ -320,8 +361,8 @@ export function ProcessoDrawer({
         <SecaoDrawer
           icon={Route}
           titulo="Transporte"
-          aberto={transporteAberto}
-          onToggle={() => setTransporteAberto((v) => !v)}
+          aberto={secoesAbertas.transporte}
+          onToggle={() => alternarSecao('transporte')}
         >
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
             <div className="flex flex-col gap-1">
@@ -454,14 +495,14 @@ export function ProcessoDrawer({
           }
           acoes={
             processo.status === 'contratacao_frete' && cotados.length === 0 ? (
-              <Button size="sm" variant="outline" onClick={() => setFreteAberto(true)}>
+              <Button size="sm" variant="outline" onClick={() => abrirSecao('frete')}>
                 <Plus className="size-4" />
                 Adicionar cotação
               </Button>
             ) : undefined
           }
-          aberto={freteAberto}
-          onToggle={() => setFreteAberto((v) => !v)}
+          aberto={secoesAbertas.frete}
+          onToggle={() => alternarSecao('frete')}
         >
           <p className="text-muted-foreground text-xs">
             Selecione os fornecedores com quem foi solicitada cotação para este
@@ -482,7 +523,7 @@ export function ProcessoDrawer({
                     className="cursor-pointer"
                   >
                     {cotado && <Check />}
-                    {f.nome}
+                    {f.nomeFantasia}
                     {aceito ? ' · Aceito' : ''}
                   </Badge>
                 </button>
@@ -509,7 +550,7 @@ export function ProcessoDrawer({
                     const f = fornecedoresFrete.find((f) => f.id === id)
                     return (
                       <SelectItem key={id} value={id}>
-                        {f?.nome}
+                        {f?.nomeFantasia}
                       </SelectItem>
                     )
                   })}
@@ -525,8 +566,8 @@ export function ProcessoDrawer({
           icon={Boxes}
           titulo="Produtos"
           badge={<Badge variant="secondary">{processo.produtos.length}</Badge>}
-          aberto={produtosAberto}
-          onToggle={() => setProdutosAberto((v) => !v)}
+          aberto={secoesAbertas.produtos}
+          onToggle={() => alternarSecao('produtos')}
         >
           {processo.produtos.length > 0 && (
             <ul className="flex flex-wrap gap-2">
@@ -575,8 +616,8 @@ export function ProcessoDrawer({
         <SecaoDrawer
           icon={Wallet}
           titulo="Financeiro"
-          aberto={financeiroAberto}
-          onToggle={() => setFinanceiroAberto((v) => !v)}
+          aberto={secoesAbertas.financeiro}
+          onToggle={() => alternarSecao('financeiro')}
         >
           {processo.numerario && (
             <Button
@@ -611,8 +652,8 @@ export function ProcessoDrawer({
         <SecaoDrawer
           icon={Landmark}
           titulo="Desembaraço"
-          aberto={desembaracoAberto}
-          onToggle={() => setDesembaracoAberto((v) => !v)}
+          aberto={secoesAbertas.desembaraco}
+          onToggle={() => alternarSecao('desembaraco')}
         >
           <div className="grid grid-cols-2 gap-x-4 gap-y-4">
             <div className="col-span-2">
@@ -634,26 +675,30 @@ export function ProcessoDrawer({
               value={processo.dataSiscargo ?? ''}
               onChange={(v) => patch('dataSiscargo', v)}
             />
-            <div className="col-span-2">
-              <EditableField
-                label="Pagamento ICMS"
-                type="date"
-                value={processo.dataIcms ?? ''}
-                onChange={(v) => patch('dataIcms', v)}
-              />
-            </div>
-            <div className="col-span-2">
-              <EditableField
-                label="Data de encerramento"
-                type="date"
-                value={processo.dataEncerramento ?? ''}
-                onChange={(v) => patch('dataEncerramento', v)}
-              />
-            </div>
+            <EditableField
+              label="Pagamento ICMS"
+              type="date"
+              value={processo.dataIcms ?? ''}
+              onChange={(v) => patch('dataIcms', v)}
+            />
+            <EditableField
+              label="Data de encerramento"
+              type="date"
+              value={processo.dataEncerramento ?? ''}
+              onChange={(v) => patch('dataEncerramento', v)}
+            />
           </div>
         </SecaoDrawer>
 
         <Separator />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={selecionarArquivos}
+        />
 
         <SecaoDrawer
           icon={Paperclip}
@@ -669,16 +714,9 @@ export function ProcessoDrawer({
               Adicionar
             </Button>
           }
-          aberto={anexosAberto}
-          onToggle={() => setAnexosAberto((v) => !v)}
+          aberto={secoesAbertas.anexos}
+          onToggle={() => alternarSecao('anexos')}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={selecionarArquivos}
-          />
           {processo.anexos.length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum anexo.</p>
           ) : (
@@ -707,8 +745,8 @@ export function ProcessoDrawer({
           icon={MessageSquare}
           titulo="Comentários"
           badge={<Badge variant="secondary">{processo.comentarios.length}</Badge>}
-          aberto={comentariosAberto}
-          onToggle={() => setComentariosAberto((v) => !v)}
+          aberto={secoesAbertas.comentarios}
+          onToggle={() => alternarSecao('comentarios')}
         >
           {processo.comentarios.length > 0 && (
             <ul className="flex flex-col gap-3">

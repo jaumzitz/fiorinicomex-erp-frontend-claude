@@ -10,17 +10,25 @@ import {
 import { EditableField } from '@/components/EditableField'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
-import type { EmpresaCadastrada } from '@/types/domain'
+import {
+  TIPOS_RELACIONAMENTO_EMPRESA,
+  TIPO_RELACIONAMENTO_EMPRESA_LABELS,
+  type Empresa,
+  type TipoRelacionamentoEmpresa,
+} from '@/types/domain'
 
 export function EmpresaDrawer({
   empresa,
   open,
   onOpenChange,
 }: {
-  empresa: EmpresaCadastrada | null
+  empresa: Empresa | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -29,8 +37,14 @@ export function EmpresaDrawer({
 
   if (!empresa) return null
 
-  function patch(campo: keyof EmpresaCadastrada, valor: string) {
+  function patch(campo: keyof Empresa, valor: string) {
     atualizarEmpresa(empresa!.id, { [campo]: valor })
+  }
+
+  function alternarTipoRelacionamento(tipo: TipoRelacionamentoEmpresa, marcado: boolean) {
+    const atual = empresa!.tiposRelacionamento
+    const proximo = marcado ? [...atual, tipo] : atual.filter((t) => t !== tipo)
+    atualizarEmpresa(empresa!.id, { tiposRelacionamento: proximo })
   }
 
   return (
@@ -40,6 +54,25 @@ export function EmpresaDrawer({
           <SheetTitle className="text-lg">{empresa.nomeFantasia || 'Nova empresa'}</SheetTitle>
           <SheetDescription>{empresa.razaoSocial}</SheetDescription>
         </SheetHeader>
+
+        <Separator />
+
+        <div className="flex flex-col gap-3 px-5 py-5">
+          <Label className="text-muted-foreground text-xs font-normal">
+            Tipo de relacionamento
+          </Label>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {TIPOS_RELACIONAMENTO_EMPRESA.map((tipo) => (
+              <label key={tipo} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={empresa.tiposRelacionamento.includes(tipo)}
+                  onCheckedChange={(v) => alternarTipoRelacionamento(tipo, !!v)}
+                />
+                {TIPO_RELACIONAMENTO_EMPRESA_LABELS[tipo]}
+              </label>
+            ))}
+          </div>
+        </div>
 
         <Separator />
 
@@ -54,7 +87,36 @@ export function EmpresaDrawer({
             value={empresa.razaoSocial}
             onChange={(v) => patch('razaoSocial', v)}
           />
-          <EditableField label="CNPJ" value={empresa.cnpj} onChange={(v) => patch('cnpj', v)} />
+          <div className="col-span-2 flex flex-col gap-1">
+            <Label className="text-muted-foreground text-xs font-normal">Empresa estrangeira</Label>
+            <div className="flex h-8 items-center gap-2">
+              <Switch
+                checked={empresa.estrangeira}
+                onCheckedChange={(v) => atualizarEmpresa(empresa.id, { estrangeira: v })}
+              />
+              <span className="text-sm">{empresa.estrangeira ? 'Estrangeira' : 'Nacional'}</span>
+            </div>
+          </div>
+          {empresa.estrangeira ? (
+            <>
+              <EditableField
+                label="Tax ID"
+                value={empresa.taxId ?? ''}
+                onChange={(v) => patch('taxId', v)}
+              />
+              <EditableField
+                label="País"
+                value={empresa.pais ?? ''}
+                onChange={(v) => patch('pais', v)}
+              />
+            </>
+          ) : (
+            <EditableField
+              label="CNPJ"
+              value={empresa.cnpj ?? ''}
+              onChange={(v) => patch('cnpj', v)}
+            />
+          )}
           <EditableField
             label="Site"
             type="url"

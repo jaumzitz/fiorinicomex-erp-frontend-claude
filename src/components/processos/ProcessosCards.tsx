@@ -37,7 +37,7 @@ export function ProcessosCards({
                 <span className="font-semibold">{p.numero}</span>
                 <StatusBadge status={p.status} />
               </div>
-              <span className="text-muted-foreground truncate text-sm">{cliente?.nome}</span>
+              <span className="text-muted-foreground truncate text-sm">{cliente?.nomeFantasia}</span>
             </CardHeader>
             <CardContent className="flex flex-col gap-1.5 px-4 text-sm">
               <div className="flex items-center gap-1.5">

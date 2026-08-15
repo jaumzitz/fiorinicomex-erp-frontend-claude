@@ -66,7 +66,7 @@ export default function BI() {
                   key={cliente?.id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span>{cliente?.nome}</span>
+                  <span>{cliente?.nomeFantasia}</span>
                   <span className="text-muted-foreground">{total}</span>
                 </li>
               ))}

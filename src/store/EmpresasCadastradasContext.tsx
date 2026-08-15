@@ -1,16 +1,18 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 
-import { empresasCadastradas as empresasIniciais } from '@/data/mock-data'
-import type { ContatoEmpresa, EmpresaCadastrada } from '@/types/domain'
+import { empresas as empresasIniciais } from '@/data/mock-data'
+import type { ContatoEmpresa, Empresa, TipoRelacionamentoEmpresa } from '@/types/domain'
 
 interface EmpresasCadastradasContextValue {
-  empresas: EmpresaCadastrada[]
+  empresas: Empresa[]
   criarEmpresa: (dados: {
     nomeFantasia: string
     razaoSocial: string
-    cnpj: string
-  }) => EmpresaCadastrada
-  atualizarEmpresa: (id: string, patch: Partial<EmpresaCadastrada>) => void
+    tiposRelacionamento: TipoRelacionamentoEmpresa[]
+    estrangeira: boolean
+    cnpj?: string
+  }) => Empresa
+  atualizarEmpresa: (id: string, patch: Partial<Empresa>) => void
   adicionarContato: (empresaId: string) => void
   atualizarContato: (empresaId: string, contatoId: string, patch: Partial<ContatoEmpresa>) => void
   removerContato: (empresaId: string, contatoId: string) => void
@@ -19,10 +21,16 @@ interface EmpresasCadastradasContextValue {
 const EmpresasCadastradasContext = createContext<EmpresasCadastradasContextValue | null>(null)
 
 export function EmpresasCadastradasProvider({ children }: { children: ReactNode }) {
-  const [empresas, setEmpresas] = useState<EmpresaCadastrada[]>(empresasIniciais)
+  const [empresas, setEmpresas] = useState<Empresa[]>(empresasIniciais)
 
-  function criarEmpresa(dados: { nomeFantasia: string; razaoSocial: string; cnpj: string }) {
-    const nova: EmpresaCadastrada = {
+  function criarEmpresa(dados: {
+    nomeFantasia: string
+    razaoSocial: string
+    tiposRelacionamento: TipoRelacionamentoEmpresa[]
+    estrangeira: boolean
+    cnpj?: string
+  }) {
+    const nova: Empresa = {
       id: crypto.randomUUID(),
       contatos: [],
       ...dados,
@@ -31,7 +39,7 @@ export function EmpresasCadastradasProvider({ children }: { children: ReactNode 
     return nova
   }
 
-  function atualizarEmpresa(id: string, patch: Partial<EmpresaCadastrada>) {
+  function atualizarEmpresa(id: string, patch: Partial<Empresa>) {
     setEmpresas((atual) => atual.map((e) => (e.id === id ? { ...e, ...patch } : e)))
   }
 

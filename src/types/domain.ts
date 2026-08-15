@@ -34,20 +34,24 @@ export const TIPO_CARGA_LABELS: Record<TipoCarga, string> = {
   LCL: 'LCL — Carga consolidada',
 }
 
-export interface Cliente {
-  id: string
-  nome: string
-  cnpj: string
-  email: string
-  telefone?: string
-}
+export const TIPOS_RELACIONAMENTO_EMPRESA = [
+  'cliente',
+  'exportador',
+  'fornecedor_frete',
+  'agente_carga',
+  'transportador',
+  'recinto',
+] as const
 
-export interface Fornecedor {
-  id: string
-  nome: string
-  contato?: string
-  email?: string
-  telefone?: string
+export type TipoRelacionamentoEmpresa = (typeof TIPOS_RELACIONAMENTO_EMPRESA)[number]
+
+export const TIPO_RELACIONAMENTO_EMPRESA_LABELS: Record<TipoRelacionamentoEmpresa, string> = {
+  cliente: 'Cliente',
+  exportador: 'Exportador',
+  fornecedor_frete: 'Fornecedor de frete',
+  agente_carga: 'Agente de carga',
+  transportador: 'Transportador',
+  recinto: 'Recinto',
 }
 
 export interface ContatoEmpresa {
@@ -57,15 +61,29 @@ export interface ContatoEmpresa {
   email?: string
 }
 
-export interface EmpresaCadastrada {
+export interface Empresa {
   id: string
   nomeFantasia: string
   razaoSocial: string
-  cnpj: string
+  tiposRelacionamento: TipoRelacionamentoEmpresa[]
+  /** Empresa brasileira (false, usa cnpj) ou estrangeira (true, usa taxId + pais). */
+  estrangeira: boolean
+  cnpj?: string
+  /** Identificador fiscal equivalente ao CNPJ para empresas estrangeiras (ex.: Tax ID/EIN nos EUA, VAT number na UE). */
+  taxId?: string
+  pais?: string
   site?: string
   telefone?: string
   email?: string
   contatos: ContatoEmpresa[]
+}
+
+export interface Usuario {
+  id: string
+  nome: string
+  email: string
+  cargo?: string
+  criadoEm: string
 }
 
 export interface Comentario {
@@ -107,7 +125,7 @@ export interface Numerario {
   tributos: ItemTributo[]
 }
 
-export interface Empresa {
+export interface EmpresaConfig {
   nome: string
   razaoSocial: string
   cnpj: string
