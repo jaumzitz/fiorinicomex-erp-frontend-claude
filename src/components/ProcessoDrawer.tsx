@@ -544,8 +544,8 @@ export function ProcessoDrawer({
             />
             <EditableField
               label="Destino"
-              value={processo.portoDestino ?? ''}
-              onChange={(v) => patch('portoDestino', v)}
+              value={processo.destino ?? ''}
+              onChange={(v) => patch('destino', v)}
             />
             <EditableField
               label="Previsão de embarque"

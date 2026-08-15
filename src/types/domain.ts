@@ -5,6 +5,7 @@ export const PI_STATUSES = [
   'desembaraco',
   'carregamento',
   'encerramento',
+  'cancelado',
 ] as const
 
 export type PiStatus = (typeof PI_STATUSES)[number]
@@ -16,6 +17,7 @@ export const PI_STATUS_LABELS: Record<PiStatus, string> = {
   desembaraco: 'Desembaraço',
   carregamento: 'Carregamento',
   encerramento: 'Encerramento',
+  cancelado: 'Cancelado',
 }
 
 export type Modal = 'maritimo' | 'rodoviario' | 'aereo' | 'ferroviario'
@@ -162,7 +164,7 @@ export interface ProcessoImportacao {
   licencaImportacao?: boolean
   tipoCarga?: TipoCarga
   origem?: string
-  portoDestino?: string
+  destino?: string
   previsaoEmbarque?: string
   previsaoChegada?: string
   hblHawb?: string
