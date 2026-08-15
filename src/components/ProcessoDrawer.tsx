@@ -349,6 +349,7 @@ export function ProcessoDrawer({
     alterarStatus,
     adicionarComentario,
     atualizarComentario,
+    removerComentario,
     adicionarAnexos,
     atualizarAnexo,
     alternarFornecedorCotado,
@@ -486,7 +487,7 @@ export function ProcessoDrawer({
         nomeArquivo: f.name,
         tamanhoBytes: f.size,
         enviadoEm: hoje(),
-        visivelNoPortal: true,
+        visivelNoPortal: false,
         url: URL.createObjectURL(f),
       })),
     )
@@ -1238,6 +1239,14 @@ export function ProcessoDrawer({
                         <span className="text-muted-foreground text-xs">
                           {formatarData(c.criadoEm)}
                         </span>
+                        <button
+                          type="button"
+                          title="Excluir comentário"
+                          onClick={() => removerComentario(processo.id, c.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="size-3.5" />
+                        </button>
                       </div>
                     </div>
                     <p className="text-sm">{c.texto}</p>
