@@ -10,6 +10,7 @@ import {
   Boxes,
   Landmark,
   Route,
+  Wallet,
   X,
   FoldVertical,
   UnfoldVertical,
@@ -27,6 +28,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
@@ -57,7 +59,6 @@ import { empresas } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
 import {
   MODAL_LABELS,
-  NUMERARIO_STATUSES,
   NUMERARIO_STATUS_LABELS,
   PI_STATUSES,
   PI_STATUS_LABELS,
@@ -188,6 +189,8 @@ function CampoMoeda({
   )
 }
 
+const TRIBUTOS_PADRAO = ['IPI', 'PIS', 'COFINS', 'Taxa Siscomex', 'ICMS']
+
 const NUMERARIO_STATUS_DOT: Record<NumerarioStatus, string> = {
   nao_liberado: 'bg-muted-foreground',
   liberado: 'bg-blue-500',
@@ -234,6 +237,7 @@ export function ProcessoDrawer({
     removerProduto,
   } = useProcessos()
   const [numerarioAberto, setNumerarioAberto] = useState(false)
+  const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
   const [novoComentario, setNovoComentario] = useState('')
   const [comentarioVisivel, setComentarioVisivel] = useState(true)
   const [novoProduto, setNovoProduto] = useState('')
@@ -312,6 +316,26 @@ export function ProcessoDrawer({
 
   function removerTributo(index: number) {
     patchNumerario({ tributos: numerarioAtual.tributos.filter((_, i) => i !== index) })
+  }
+
+  function criarNumerario() {
+    atualizarProcesso(processo!.id, {
+      numerario: {
+        invoice: '',
+        exportador: '',
+        cotacaoMoeda: 0,
+        status: 'nao_liberado',
+        tributos: TRIBUTOS_PADRAO.map((descricao) => ({ descricao, valor: 0 })),
+      },
+    })
+  }
+
+  function liberarNumerario() {
+    patchNumerario({ status: 'liberado' })
+  }
+
+  function desfazerLiberacaoNumerario() {
+    patchNumerario({ status: 'nao_liberado' })
   }
 
   function enviarComentario() {
@@ -440,6 +464,31 @@ export function ProcessoDrawer({
             </DialogContent>
           </Dialog>
         )}
+
+        <Dialog open={confirmarDesfazerAberto} onOpenChange={setConfirmarDesfazerAberto}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Desfazer liberação do numerário?</DialogTitle>
+              <DialogDescription>
+                O numerário voltará ao status "Não liberado" e os campos ficarão
+                editáveis novamente. Essa ação não afeta os dados já preenchidos.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmarDesfazerAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  desfazerLiberacaoNumerario()
+                  setConfirmarDesfazerAberto(false)
+                }}
+              >
+                Desfazer liberação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {abaAtiva === 'processo' && (
         <>
@@ -830,12 +879,36 @@ export function ProcessoDrawer({
         </>
         )}
 
-        {abaAtiva === 'financeiro' && (
+        {abaAtiva === 'financeiro' && !processo.numerario && (
+          <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
+            <Wallet className="text-muted-foreground size-8" />
+            <p className="text-muted-foreground text-sm">
+              Nenhum numerário cadastrado para este processo.
+            </p>
+            <Button size="sm" onClick={criarNumerario}>
+              <Plus className="size-4" />
+              Adicionar numerário
+            </Button>
+          </div>
+        )}
+
+        {abaAtiva === 'financeiro' && processo.numerario && (
           <div className="flex flex-col gap-4 px-5 py-5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">Numerário</span>
-              <div className="flex shrink-0 items-center gap-1">
-                {numerarioAtual.status !== 'nao_liberado' && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Numerário</span>
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+                  <span
+                    className={cn(
+                      'size-1.5 rounded-full',
+                      NUMERARIO_STATUS_DOT[numerarioAtual.status],
+                    )}
+                  />
+                  {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {numerarioBloqueado && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -845,36 +918,26 @@ export function ProcessoDrawer({
                     Ver Numerário
                   </Button>
                 )}
-                <Select
-                  value={numerarioAtual.status}
-                  onValueChange={(v) => patchNumerario({ status: v as NumerarioStatus })}
-                >
-                  <SelectTrigger size="sm" className="h-7 w-fit border-none px-2 shadow-none">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
-                      <span
-                        className={cn(
-                          'size-1.5 rounded-full',
-                          NUMERARIO_STATUS_DOT[numerarioAtual.status],
-                        )}
-                      />
-                      {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NUMERARIO_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {NUMERARIO_STATUS_LABELS[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {numerarioBloqueado ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmarDesfazerAberto(true)}
+                  >
+                    Desfazer liberação
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={liberarNumerario}>
+                    Liberar numerário
+                  </Button>
+                )}
               </div>
             </div>
 
             {numerarioBloqueado && (
               <p className="text-muted-foreground text-xs">
                 Numerário liberado — os dados abaixo não podem mais ser alterados.
-                Selecione "Não liberado" acima para desfazer e ajustar.
+                Clique em "Desfazer liberação" para ajustar.
               </p>
             )}
 
