@@ -69,7 +69,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
         </div>
         <div>
           <span className="text-muted-foreground">Exportador: </span>
-          {numerario.exportador}
+          {processo.exportador || '—'}
         </div>
         <div>
           <span className="text-muted-foreground">Cotação moeda: </span>

@@ -1,4 +1,13 @@
-import type { Empresa, EmpresaConfig, ProcessoImportacao } from '@/types/domain'
+import type { Empresa, EmpresaConfig, ProcessoImportacao, TributoCatalogo } from '@/types/domain'
+
+export const TRIBUTOS_CATALOGO_PADRAO: TributoCatalogo[] = [
+  { nome: 'Frete Internacional e Taxas', ativo: true },
+  { nome: 'IPI', ativo: true },
+  { nome: 'PIS', ativo: true },
+  { nome: 'COFINS', ativo: true },
+  { nome: 'Taxa Siscomex', ativo: true },
+  { nome: 'ICMS', ativo: true },
+]
 
 export const empresas: Empresa[] = [
   {
@@ -186,7 +195,6 @@ export const processos: ProcessoImportacao[] = [
     conhecimentoEmbarque: 'CE-2026-004471',
     numerario: {
       invoice: '90002848',
-      exportador: 'Sunrise Pharma Exports Ltd.',
       cotacaoMoeda: 5.16,
       status: 'liberado',
       tributos: [
@@ -256,7 +264,6 @@ export const processos: ProcessoImportacao[] = [
     dataIcms: '2026-07-10',
     numerario: {
       invoice: '90002911',
-      exportador: 'Guangdong Weave Textiles Co.',
       cotacaoMoeda: 5.21,
       status: 'pago',
       tributos: [

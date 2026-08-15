@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { ModalIcon } from '@/components/ModalIcon'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export function ProcessosTable({
 }) {
   const [colunasAberto, setColunasAberto] = useState(false)
   const [colunas, setColunas] = useState<ColunaEstado[]>(colunasIniciais)
+  const [buscaColuna, setBuscaColuna] = useState('')
   const [colunaArrastando, setColunaArrastando] = useState<ColunaId | null>(null)
   const [colunaSobre, setColunaSobre] = useState<ColunaId | null>(null)
   const [posicaoSobre, setPosicaoSobre] = useState<'antes' | 'depois' | null>(null)
@@ -49,6 +51,13 @@ export function ProcessosTable({
   }, [colunas])
 
   const colunasVisiveis = colunas.filter((c) => c.visivel)
+  const colunasFiltradas = buscaColuna.trim()
+    ? colunas.filter((c) =>
+        COLUNAS_DISPONIVEIS.find((d) => d.id === c.id)!
+          .label.toLowerCase()
+          .includes(buscaColuna.trim().toLowerCase()),
+      )
+    : colunas
 
   function alternarColuna(id: ColunaId) {
     setColunas((atual) => atual.map((c) => (c.id === id ? { ...c, visivel: !c.visivel } : c)))
@@ -193,9 +202,16 @@ export function ProcessosTable({
               Escolha quais colunas exibir e a ordem entre elas. "Nº PI" é fixa.
             </DialogDescription>
           </DialogHeader>
-          <ul className="flex flex-col gap-0.5">
-            {colunas.map((c, i) => {
+          <Input
+            placeholder="Buscar coluna..."
+            value={buscaColuna}
+            onChange={(e) => setBuscaColuna(e.target.value)}
+            className="h-8"
+          />
+          <ul className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+            {colunasFiltradas.map((c) => {
               const def = COLUNAS_DISPONIVEIS.find((d) => d.id === c.id)!
+              const i = colunas.findIndex((x) => x.id === c.id)
               return (
                 <li
                   key={c.id}
@@ -203,27 +219,36 @@ export function ProcessosTable({
                 >
                   <Checkbox checked={c.visivel} onCheckedChange={() => alternarColuna(c.id)} />
                   <span className="flex-1 text-sm">{def.label}</span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-6"
-                    disabled={i === 0}
-                    onClick={() => moverColuna(c.id, -1)}
-                  >
-                    <ChevronUp className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-6"
-                    disabled={i === colunas.length - 1}
-                    onClick={() => moverColuna(c.id, 1)}
-                  >
-                    <ChevronDown className="size-4" />
-                  </Button>
+                  {!buscaColuna.trim() && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-6"
+                        disabled={i === 0}
+                        onClick={() => moverColuna(c.id, -1)}
+                      >
+                        <ChevronUp className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-6"
+                        disabled={i === colunas.length - 1}
+                        onClick={() => moverColuna(c.id, 1)}
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </>
+                  )}
                 </li>
               )
             })}
+            {buscaColuna.trim() && colunasFiltradas.length === 0 && (
+              <li className="text-muted-foreground px-2 py-1.5 text-sm">
+                Nenhuma coluna encontrada.
+              </li>
+            )}
           </ul>
         </DialogContent>
       </Dialog>

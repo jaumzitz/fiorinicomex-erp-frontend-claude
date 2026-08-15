@@ -112,6 +112,11 @@ export interface ItemTributo {
   valor: number
 }
 
+export interface TributoCatalogo {
+  nome: string
+  ativo: boolean
+}
+
 export interface DadosBancarios {
   banco: string
   agencia: string
@@ -124,7 +129,7 @@ export const NUMERARIO_STATUSES = ['nao_liberado', 'liberado', 'pago', 'cancelad
 export type NumerarioStatus = (typeof NUMERARIO_STATUSES)[number]
 
 export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
-  nao_liberado: 'Não liberado',
+  nao_liberado: 'Em digitação',
   liberado: 'Liberado',
   pago: 'Pago',
   cancelado: 'Cancelado',
@@ -132,7 +137,6 @@ export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
 
 export interface Numerario {
   invoice: string
-  exportador: string
   cotacaoMoeda: number
   tributos: ItemTributo[]
   status: NumerarioStatus
@@ -163,6 +167,7 @@ export interface ProcessoImportacao {
   referenciaCliente?: string
   licencaImportacao?: boolean
   tipoCarga?: TipoCarga
+  navio?: string
   origem?: string
   destino?: string
   previsaoEmbarque?: string
