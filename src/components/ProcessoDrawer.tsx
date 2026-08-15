@@ -190,16 +190,25 @@ function CampoMoeda({
   )
 }
 
-function TributoDescricaoInput({
+function ComboBoxTexto({
   value,
   onChange,
+  opcoesDisponiveis,
+  placeholder,
   disabled,
+  permitirNovo,
+  aoCriarNovo,
+  className,
 }: {
   value: string
   onChange: (valor: string) => void
+  opcoesDisponiveis: string[]
+  placeholder?: string
   disabled?: boolean
+  permitirNovo?: boolean
+  aoCriarNovo?: (valor: string) => void
+  className?: string
 }) {
-  const { tributosCatalogo, adicionarTributoCatalogo } = useTributosCatalogo()
   const [aberto, setAberto] = useState(false)
   const [posicao, setPosicao] = useState<'baixo' | 'cima'>('baixo')
   const [rascunho, setRascunho] = useState(value)
@@ -222,18 +231,18 @@ function TributoDescricaoInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, rascunho])
 
-  const nomesAtivos = tributosCatalogo.filter((t) => t.ativo).map((t) => t.nome)
-
   const opcoes = digitou
-    ? nomesAtivos.filter((t) => t.toLowerCase().includes(rascunho.trim().toLowerCase()))
-    : nomesAtivos
+    ? opcoesDisponiveis.filter((t) => t.toLowerCase().includes(rascunho.trim().toLowerCase()))
+    : opcoesDisponiveis
 
-  const jaExiste = nomesAtivos.some((t) => t.toLowerCase() === rascunho.trim().toLowerCase())
+  const jaExiste = opcoesDisponiveis.some(
+    (t) => t.toLowerCase() === rascunho.trim().toLowerCase(),
+  )
 
   function confirmar(valorFinal: string) {
     const limpo = valorFinal.trim()
     onChange(limpo)
-    if (limpo) adicionarTributoCatalogo(limpo)
+    if (limpo) aoCriarNovo?.(limpo)
     setAberto(false)
   }
 
@@ -248,9 +257,9 @@ function TributoDescricaoInput({
   }
 
   return (
-    <div ref={containerRef} className="relative flex-1">
+    <div ref={containerRef} className={cn('relative', className)}>
       <Input
-        placeholder="Descrição"
+        placeholder={placeholder}
         value={rascunho}
         disabled={disabled}
         onFocus={() => {
@@ -270,7 +279,7 @@ function TributoDescricaoInput({
         }}
         className="h-8"
       />
-      {aberto && (opcoes.length > 0 || (rascunho.trim() && !jaExiste)) && (
+      {aberto && (opcoes.length > 0 || (permitirNovo && rascunho.trim() && !jaExiste)) && (
         <div
           className={cn(
             'bg-popover absolute left-0 z-20 max-h-48 w-full overflow-auto rounded-md border py-1 shadow-md',
@@ -287,7 +296,7 @@ function TributoDescricaoInput({
               {op}
             </button>
           ))}
-          {rascunho.trim() && !jaExiste && (
+          {permitirNovo && rascunho.trim() && !jaExiste && (
             <button
               type="button"
               onClick={() => confirmar(rascunho)}
@@ -347,6 +356,7 @@ export function ProcessoDrawer({
     adicionarProduto,
     removerProduto,
   } = useProcessos()
+  const { tributosCatalogo, adicionarTributoCatalogo } = useTributosCatalogo()
   const [numerarioAberto, setNumerarioAberto] = useState(false)
   const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
   const [confirmarExcluirAberto, setConfirmarExcluirAberto] = useState(false)
@@ -393,8 +403,10 @@ export function ProcessoDrawer({
 
   const cliente = getCliente(processo.clienteId)
   const fornecedoresFrete = empresas.filter((e) => e.tiposRelacionamento.includes('fornecedor_frete'))
+  const exportadores = empresas.filter((e) => e.tiposRelacionamento.includes('exportador'))
   const cotados = processo.fornecedoresCotadosIds ?? []
   const maritimo = processo.modal === 'maritimo'
+  const nomesTributosAtivos = tributosCatalogo.filter((t) => t.ativo).map((t) => t.nome)
 
   function patch(campo: keyof ProcessoImportacao, valor: string) {
     atualizarProcesso(processo!.id, { [campo]: valor || undefined })
@@ -647,11 +659,15 @@ export function ProcessoDrawer({
             <Label className="text-muted-foreground text-xs font-normal">CNPJ</Label>
             <span className="text-sm">{cliente?.cnpj}</span>
           </div>
-          <EditableField
-            label="Exportador"
-            value={processo.exportador ?? ''}
-            onChange={(v) => patch('exportador', v)}
-          />
+          <div className="flex flex-col gap-1">
+            <Label className="text-muted-foreground text-xs font-normal">Exportador</Label>
+            <ComboBoxTexto
+              value={processo.exportador ?? ''}
+              onChange={(v) => patch('exportador', v)}
+              opcoesDisponiveis={exportadores.map((e) => e.nomeFantasia)}
+              className="w-full"
+            />
+          </div>
           <EditableField
             label="Referência cliente"
             value={processo.referenciaCliente ?? ''}
@@ -705,8 +721,18 @@ export function ProcessoDrawer({
                 </span>
               </div>
             </div>
+            <EditableField
+              label="Origem"
+              value={processo.origem ?? ''}
+              onChange={(v) => patch('origem', v)}
+            />
+            <EditableField
+              label="Destino"
+              value={processo.destino ?? ''}
+              onChange={(v) => patch('destino', v)}
+            />
             {maritimo && (
-              <div className="col-span-2 flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <Label className="text-muted-foreground text-xs font-normal">
                   Tipo de carga
                 </Label>
@@ -730,24 +756,12 @@ export function ProcessoDrawer({
               </div>
             )}
             {maritimo && (
-              <div className="col-span-2">
-                <EditableField
-                  label="Navio"
-                  value={processo.navio ?? ''}
-                  onChange={(v) => patch('navio', v)}
-                />
-              </div>
+              <EditableField
+                label="Navio"
+                value={processo.navio ?? ''}
+                onChange={(v) => patch('navio', v)}
+              />
             )}
-            <EditableField
-              label="Origem"
-              value={processo.origem ?? ''}
-              onChange={(v) => patch('origem', v)}
-            />
-            <EditableField
-              label="Destino"
-              value={processo.destino ?? ''}
-              onChange={(v) => patch('destino', v)}
-            />
             <EditableField
               label="Previsão de embarque"
               type="date"
@@ -1081,15 +1095,9 @@ export function ProcessoDrawer({
 
               <Separator />
 
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-muted-foreground text-xs font-normal">
-                  Tributos / Despesas
-                </Label>
-                <Button size="sm" variant="outline" onClick={adicionarTributo}>
-                  <Plus className="size-4" />
-                  Adicionar
-                </Button>
-              </div>
+              <Label className="text-muted-foreground text-xs font-normal">
+                Tributos / Despesas
+              </Label>
 
               {numerarioAtual.tributos.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
@@ -1099,9 +1107,14 @@ export function ProcessoDrawer({
                 <ul className="flex flex-col gap-2">
                   {numerarioAtual.tributos.map((item, index) => (
                     <li key={index} className="flex items-center gap-2">
-                      <TributoDescricaoInput
+                      <ComboBoxTexto
                         value={item.descricao}
                         onChange={(v) => atualizarTributo(index, { descricao: v })}
+                        opcoesDisponiveis={nomesTributosAtivos}
+                        placeholder="Descrição"
+                        permitirNovo
+                        aoCriarNovo={adicionarTributoCatalogo}
+                        className="flex-1"
                       />
                       <CampoMoeda
                         placeholder="Valor"
@@ -1122,6 +1135,11 @@ export function ProcessoDrawer({
                   ))}
                 </ul>
               )}
+
+              <Button size="sm" variant="outline" className="w-fit" onClick={adicionarTributo}>
+                <Plus className="size-4" />
+                Adicionar
+              </Button>
             </fieldset>
             <div className="h-10" />
           </div>
