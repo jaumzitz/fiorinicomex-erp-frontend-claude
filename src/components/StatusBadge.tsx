@@ -8,6 +8,7 @@ const statusDotClass: Record<PiStatus, string> = {
   desembaraco: 'bg-status-desembaraco',
   carregamento: 'bg-status-carregamento',
   encerramento: 'bg-status-encerramento',
+  cancelado: 'bg-status-cancelado',
 }
 
 export function StatusBadge({ status }: { status: PiStatus }) {

@@ -17,6 +17,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
 import {
@@ -25,10 +32,19 @@ import {
   type TipoRelacionamentoEmpresa,
 } from '@/types/domain'
 
+const FILTROS_STATUS = [
+  { id: 'ativas', label: 'Ativas' },
+  { id: 'inativas', label: 'Inativas' },
+  { id: 'todas', label: 'Todas' },
+] as const
+
+type FiltroStatus = (typeof FILTROS_STATUS)[number]['id']
+
 export default function EmpresasCadastro() {
   const { empresas, criarEmpresa } = useEmpresasCadastradas()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [busca, setBusca] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('ativas')
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null)
   const [drawerAberto, setDrawerAberto] = useState(false)
   const [novoAberto, setNovoAberto] = useState(false)
@@ -41,14 +57,17 @@ export default function EmpresasCadastro() {
 
   const empresasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase()
-    if (!termo) return empresas
-    return empresas.filter(
-      (e) =>
+    return empresas.filter((e) => {
+      if (filtroStatus === 'ativas' && !e.ativo) return false
+      if (filtroStatus === 'inativas' && e.ativo) return false
+      if (!termo) return true
+      return (
         e.nomeFantasia.toLowerCase().includes(termo) ||
         e.razaoSocial.toLowerCase().includes(termo) ||
-        (e.cnpj ?? '').includes(termo),
-    )
-  }, [empresas, busca])
+        (e.cnpj ?? '').includes(termo)
+      )
+    })
+  }, [empresas, busca, filtroStatus])
 
   function abrirEmpresa(id: string) {
     setSelecionadoId(id)
@@ -99,6 +118,18 @@ export default function EmpresasCadastro() {
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
+        <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as FiltroStatus)}>
+          <SelectTrigger size="sm" className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FILTROS_STATUS.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="px-4 pb-8 sm:px-8">

@@ -12,8 +12,9 @@ interface ProcessosContextValue {
   }) => ProcessoImportacao
   atualizarProcesso: (id: string, patch: Partial<ProcessoImportacao>) => void
   alterarStatus: (id: string, status: PiStatus) => void
-  adicionarComentario: (id: string, comentario: Omit<Comentario, 'id'>) => void
+  adicionarComentario: (id: string, comentario: Omit<Comentario, 'id' | 'ativo'>) => void
   atualizarComentario: (id: string, comentarioId: string, patch: Partial<Comentario>) => void
+  inativarComentario: (id: string, comentarioId: string) => void
   adicionarAnexos: (id: string, anexos: Array<Omit<Anexo, 'id'>>) => void
   atualizarAnexo: (id: string, anexoId: string, patch: Partial<Anexo>) => void
   alternarFornecedorCotado: (id: string, fornecedorId: string) => void
@@ -65,13 +66,16 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
     atualizarProcesso(id, { status })
   }
 
-  function adicionarComentario(id: string, comentario: Omit<Comentario, 'id'>) {
+  function adicionarComentario(id: string, comentario: Omit<Comentario, 'id' | 'ativo'>) {
     setProcessos((atual) =>
       atual.map((p) =>
         p.id === id
           ? {
               ...p,
-              comentarios: [...p.comentarios, { ...comentario, id: crypto.randomUUID() }],
+              comentarios: [
+                ...p.comentarios,
+                { ...comentario, id: crypto.randomUUID(), ativo: true },
+              ],
               atualizadoEm: hoje(),
             }
           : p,
@@ -133,6 +137,21 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  function inativarComentario(id: string, comentarioId: string) {
+    setProcessos((atual) =>
+      atual.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              comentarios: p.comentarios.map((c) =>
+                c.id === comentarioId ? { ...c, ativo: false } : c,
+              ),
+            }
+          : p,
+      ),
+    )
+  }
+
   function atualizarAnexo(id: string, anexoId: string, patch: Partial<Anexo>) {
     setProcessos((atual) =>
       atual.map((p) =>
@@ -175,6 +194,7 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
         alterarStatus,
         adicionarComentario,
         atualizarComentario,
+        inativarComentario,
         adicionarAnexos,
         atualizarAnexo,
         alternarFornecedorCotado,

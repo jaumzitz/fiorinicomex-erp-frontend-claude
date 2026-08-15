@@ -32,8 +32,13 @@ export function EmpresaDrawer({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { atualizarEmpresa, adicionarContato, atualizarContato, removerContato } =
-    useEmpresasCadastradas()
+  const {
+    atualizarEmpresa,
+    alternarAtivoEmpresa,
+    adicionarContato,
+    atualizarContato,
+    inativarContato,
+  } = useEmpresasCadastradas()
 
   if (!empresa) return null
 
@@ -51,7 +56,21 @@ export function EmpresaDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle className="text-lg">{empresa.nomeFantasia || 'Nova empresa'}</SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle className="text-lg">{empresa.nomeFantasia || 'Nova empresa'}</SheetTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant={empresa.ativo ? 'default' : 'outline'} className="text-xs">
+                {empresa.ativo ? 'Ativa' : 'Inativa'}
+              </Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => alternarAtivoEmpresa(empresa.id)}
+              >
+                {empresa.ativo ? 'Inativar' : 'Ativar'}
+              </Button>
+            </div>
+          </div>
           <SheetDescription>{empresa.razaoSocial}</SheetDescription>
         </SheetHeader>
 
@@ -144,7 +163,7 @@ export function EmpresaDrawer({
             <div className="flex items-center gap-2 text-sm font-medium">
               <Users className="size-4" />
               Contatos
-              <Badge variant="secondary">{empresa.contatos.length}</Badge>
+              <Badge variant="secondary">{empresa.contatos.filter((c) => c.ativo).length}</Badge>
             </div>
             <Button size="sm" variant="outline" onClick={() => adicionarContato(empresa.id)}>
               <Plus className="size-4" />
@@ -152,11 +171,11 @@ export function EmpresaDrawer({
             </Button>
           </div>
 
-          {empresa.contatos.length === 0 ? (
+          {empresa.contatos.filter((c) => c.ativo).length === 0 ? (
             <p className="text-muted-foreground text-sm">Nenhum contato cadastrado.</p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {empresa.contatos.map((c) => (
+              {empresa.contatos.filter((c) => c.ativo).map((c) => (
                 <li
                   key={c.id}
                   className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center"
@@ -188,8 +207,9 @@ export function EmpresaDrawer({
                   <Button
                     size="icon"
                     variant="ghost"
+                    title="Inativar contato"
                     className="size-8 shrink-0"
-                    onClick={() => removerContato(empresa.id, c.id)}
+                    onClick={() => inativarContato(empresa.id, c.id)}
                   >
                     <X className="size-4" />
                   </Button>

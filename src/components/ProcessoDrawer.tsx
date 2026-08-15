@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  MessageSquare,
   FileText,
   Plus,
   Check,
@@ -10,10 +9,12 @@ import {
   Boxes,
   Landmark,
   Route,
+  Wallet,
   X,
   FoldVertical,
   UnfoldVertical,
   Construction,
+  Trash2,
 } from 'lucide-react'
 
 import {
@@ -27,6 +28,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
@@ -53,11 +55,12 @@ import { NumerarioPreview } from '@/components/NumerarioPreview'
 import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
 import { cn } from '@/lib/utils'
-import { empresas } from '@/data/mock-data'
+import { TRIBUTOS_CATALOGO_PADRAO } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
+import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
+import { useTributosCatalogo } from '@/store/TributosCatalogoContext'
 import {
   MODAL_LABELS,
-  NUMERARIO_STATUSES,
   NUMERARIO_STATUS_LABELS,
   PI_STATUSES,
   PI_STATUS_LABELS,
@@ -188,6 +191,127 @@ function CampoMoeda({
   )
 }
 
+function ComboBoxTexto({
+  value,
+  onChange,
+  opcoesDisponiveis,
+  placeholder,
+  disabled,
+  permitirNovo,
+  aoCriarNovo,
+  className,
+}: {
+  value: string
+  onChange: (valor: string) => void
+  opcoesDisponiveis: string[]
+  placeholder?: string
+  disabled?: boolean
+  permitirNovo?: boolean
+  aoCriarNovo?: (valor: string) => void
+  className?: string
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [posicao, setPosicao] = useState<'baixo' | 'cima'>('baixo')
+  const [rascunho, setRascunho] = useState(value)
+  const [digitou, setDigitou] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setRascunho(value)
+  }, [value])
+
+  useEffect(() => {
+    if (!aberto) return
+    function handleClickFora(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        confirmar(rascunho)
+      }
+    }
+    document.addEventListener('mousedown', handleClickFora)
+    return () => document.removeEventListener('mousedown', handleClickFora)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, rascunho])
+
+  const opcoes = digitou
+    ? opcoesDisponiveis.filter((t) => t.toLowerCase().includes(rascunho.trim().toLowerCase()))
+    : opcoesDisponiveis
+
+  const jaExiste = opcoesDisponiveis.some(
+    (t) => t.toLowerCase() === rascunho.trim().toLowerCase(),
+  )
+
+  function confirmar(valorFinal: string) {
+    const limpo = valorFinal.trim()
+    onChange(limpo)
+    if (limpo) aoCriarNovo?.(limpo)
+    setAberto(false)
+  }
+
+  function abrir() {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const espacoAbaixo = window.innerHeight - rect.bottom
+      const espacoAcima = rect.top
+      setPosicao(espacoAbaixo < 220 && espacoAcima > espacoAbaixo ? 'cima' : 'baixo')
+    }
+    setAberto(true)
+  }
+
+  return (
+    <div ref={containerRef} className={cn('relative', className)}>
+      <Input
+        placeholder={placeholder}
+        value={rascunho}
+        disabled={disabled}
+        onFocus={() => {
+          setDigitou(false)
+          abrir()
+        }}
+        onChange={(e) => {
+          setRascunho(e.target.value)
+          setDigitou(true)
+          abrir()
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            confirmar(rascunho)
+          }
+        }}
+        className="h-8"
+      />
+      {aberto && (opcoes.length > 0 || (permitirNovo && rascunho.trim() && !jaExiste)) && (
+        <div
+          className={cn(
+            'bg-popover absolute left-0 z-20 max-h-48 w-full overflow-auto rounded-md border py-1 shadow-md',
+            posicao === 'baixo' ? 'top-full mt-1' : 'bottom-full mb-1',
+          )}
+        >
+          {opcoes.map((op) => (
+            <button
+              key={op}
+              type="button"
+              onClick={() => confirmar(op)}
+              className="hover:bg-accent block w-full px-3 py-1.5 text-left text-sm"
+            >
+              {op}
+            </button>
+          ))}
+          {permitirNovo && rascunho.trim() && !jaExiste && (
+            <button
+              type="button"
+              onClick={() => confirmar(rascunho)}
+              className="hover:bg-accent text-muted-foreground block w-full px-3 py-1.5 text-left text-sm"
+            >
+              Adicionar "{rascunho.trim()}"
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const NUMERARIO_STATUS_DOT: Record<NumerarioStatus, string> = {
   nao_liberado: 'bg-muted-foreground',
   liberado: 'bg-blue-500',
@@ -200,7 +324,6 @@ const SECOES_PADRAO: Record<string, boolean> = {
   frete: false,
   produtos: false,
   desembaraco: false,
-  comentarios: false,
 }
 
 const ABAS_DRAWER = [
@@ -208,6 +331,7 @@ const ABAS_DRAWER = [
   { id: 'financeiro', label: 'Financeiro' },
   { id: 'di', label: 'Digitação de DI' },
   { id: 'anexos', label: 'Anexos' },
+  { id: 'comentarios', label: 'Comentários' },
 ] as const
 
 type AbaDrawer = (typeof ABAS_DRAWER)[number]['id']
@@ -226,6 +350,7 @@ export function ProcessoDrawer({
     alterarStatus,
     adicionarComentario,
     atualizarComentario,
+    inativarComentario,
     adicionarAnexos,
     atualizarAnexo,
     alternarFornecedorCotado,
@@ -233,9 +358,13 @@ export function ProcessoDrawer({
     adicionarProduto,
     removerProduto,
   } = useProcessos()
+  const { empresas, criarEmpresa } = useEmpresasCadastradas()
+  const { tributosCatalogo, adicionarTributoCatalogo } = useTributosCatalogo()
   const [numerarioAberto, setNumerarioAberto] = useState(false)
+  const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
+  const [confirmarExcluirAberto, setConfirmarExcluirAberto] = useState(false)
   const [novoComentario, setNovoComentario] = useState('')
-  const [comentarioVisivel, setComentarioVisivel] = useState(true)
+  const [comentarioVisivel, setComentarioVisivel] = useState(false)
   const [novoProduto, setNovoProduto] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -276,17 +405,45 @@ export function ProcessoDrawer({
   if (!processo) return null
 
   const cliente = getCliente(processo.clienteId)
-  const fornecedoresFrete = empresas.filter((e) => e.tiposRelacionamento.includes('fornecedor_frete'))
+  const fornecedoresFrete = empresas.filter(
+    (e) => e.ativo && e.tiposRelacionamento.includes('fornecedor_frete'),
+  )
+  const exportadores = empresas.filter(
+    (e) => e.ativo && e.tiposRelacionamento.includes('exportador'),
+  )
+  const exportadorAtual = empresas.find((e) => e.id === processo.exportadorId)
   const cotados = processo.fornecedoresCotadosIds ?? []
   const maritimo = processo.modal === 'maritimo'
+  const nomesTributosAtivos = tributosCatalogo.filter((t) => t.ativo).map((t) => t.nome)
 
   function patch(campo: keyof ProcessoImportacao, valor: string) {
     atualizarProcesso(processo!.id, { [campo]: valor || undefined })
   }
 
+  function selecionarExportador(nome: string) {
+    const limpo = nome.trim()
+    if (!limpo) {
+      atualizarProcesso(processo!.id, { exportadorId: undefined })
+      return
+    }
+    const existente = empresas.find(
+      (e) => e.tiposRelacionamento.includes('exportador') && e.nomeFantasia.toLowerCase() === limpo.toLowerCase(),
+    )
+    if (existente) {
+      atualizarProcesso(processo!.id, { exportadorId: existente.id })
+      return
+    }
+    const nova = criarEmpresa({
+      nomeFantasia: limpo,
+      razaoSocial: limpo,
+      tiposRelacionamento: ['exportador'],
+      estrangeira: true,
+    })
+    atualizarProcesso(processo!.id, { exportadorId: nova.id })
+  }
+
   const numerarioAtual: Numerario = processo.numerario ?? {
     invoice: '',
-    exportador: '',
     cotacaoMoeda: 0,
     tributos: [],
     status: 'nao_liberado',
@@ -314,6 +471,29 @@ export function ProcessoDrawer({
     patchNumerario({ tributos: numerarioAtual.tributos.filter((_, i) => i !== index) })
   }
 
+  function criarNumerario() {
+    atualizarProcesso(processo!.id, {
+      numerario: {
+        invoice: '',
+        cotacaoMoeda: 0,
+        status: 'nao_liberado',
+        tributos: TRIBUTOS_CATALOGO_PADRAO.map((t) => ({ descricao: t.nome, valor: 0 })),
+      },
+    })
+  }
+
+  function liberarNumerario() {
+    patchNumerario({ status: 'liberado' })
+  }
+
+  function desfazerLiberacaoNumerario() {
+    patchNumerario({ status: 'nao_liberado' })
+  }
+
+  function excluirNumerario() {
+    atualizarProcesso(processo!.id, { numerario: undefined })
+  }
+
   function enviarComentario() {
     if (!novoComentario.trim()) return
     adicionarComentario(processo!.id, {
@@ -324,7 +504,7 @@ export function ProcessoDrawer({
       estagio: processo!.status,
     })
     setNovoComentario('')
-    setComentarioVisivel(true)
+    setComentarioVisivel(false)
   }
 
   function selecionarArquivos(e: React.ChangeEvent<HTMLInputElement>) {
@@ -336,7 +516,7 @@ export function ProcessoDrawer({
         nomeArquivo: f.name,
         tamanhoBytes: f.size,
         enviadoEm: hoje(),
-        visivelNoPortal: true,
+        visivelNoPortal: false,
         url: URL.createObjectURL(f),
       })),
     )
@@ -418,6 +598,11 @@ export function ProcessoDrawer({
                 {aba.id === 'anexos' && processo.anexos.length > 0 && (
                   <Badge variant="secondary">{processo.anexos.length}</Badge>
                 )}
+                {aba.id === 'comentarios' && processo.comentarios.filter((c) => c.ativo).length > 0 && (
+                  <Badge variant="secondary">
+                    {processo.comentarios.filter((c) => c.ativo).length}
+                  </Badge>
+                )}
               </button>
             ))}
           </div>
@@ -441,6 +626,57 @@ export function ProcessoDrawer({
           </Dialog>
         )}
 
+        <Dialog open={confirmarDesfazerAberto} onOpenChange={setConfirmarDesfazerAberto}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Desfazer liberação do numerário?</DialogTitle>
+              <DialogDescription>
+                O numerário voltará ao status "Em digitação" e os campos ficarão
+                editáveis novamente. Essa ação não afeta os dados já preenchidos.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmarDesfazerAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  desfazerLiberacaoNumerario()
+                  setConfirmarDesfazerAberto(false)
+                }}
+              >
+                Desfazer liberação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={confirmarExcluirAberto} onOpenChange={setConfirmarExcluirAberto}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Excluir numerário?</DialogTitle>
+              <DialogDescription>
+                Todos os dados preenchidos (invoice, cotação e tributos/despesas)
+                serão perdidos. Essa ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmarExcluirAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  excluirNumerario()
+                  setConfirmarExcluirAberto(false)
+                }}
+              >
+                Excluir numerário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {abaAtiva === 'processo' && (
         <>
         <Separator />
@@ -455,11 +691,15 @@ export function ProcessoDrawer({
             <Label className="text-muted-foreground text-xs font-normal">CNPJ</Label>
             <span className="text-sm">{cliente?.cnpj}</span>
           </div>
-          <EditableField
-            label="Exportador"
-            value={processo.exportador ?? ''}
-            onChange={(v) => patch('exportador', v)}
-          />
+          <div className="flex flex-col gap-1">
+            <Label className="text-muted-foreground text-xs font-normal">Exportador</Label>
+            <ComboBoxTexto
+              value={exportadorAtual?.nomeFantasia ?? ''}
+              onChange={selecionarExportador}
+              opcoesDisponiveis={exportadores.map((e) => e.nomeFantasia)}
+              className="w-full"
+            />
+          </div>
           <EditableField
             label="Referência cliente"
             value={processo.referenciaCliente ?? ''}
@@ -513,8 +753,18 @@ export function ProcessoDrawer({
                 </span>
               </div>
             </div>
+            <EditableField
+              label="Origem"
+              value={processo.origem ?? ''}
+              onChange={(v) => patch('origem', v)}
+            />
+            <EditableField
+              label="Destino"
+              value={processo.destino ?? ''}
+              onChange={(v) => patch('destino', v)}
+            />
             {maritimo && (
-              <div className="col-span-2 flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <Label className="text-muted-foreground text-xs font-normal">
                   Tipo de carga
                 </Label>
@@ -537,16 +787,13 @@ export function ProcessoDrawer({
                 </Select>
               </div>
             )}
-            <EditableField
-              label="Origem"
-              value={processo.origem ?? ''}
-              onChange={(v) => patch('origem', v)}
-            />
-            <EditableField
-              label="Destino"
-              value={processo.portoDestino ?? ''}
-              onChange={(v) => patch('portoDestino', v)}
-            />
+            {maritimo && (
+              <EditableField
+                label="Navio"
+                value={processo.navio ?? ''}
+                onChange={(v) => patch('navio', v)}
+              />
+            )}
             <EditableField
               label="Previsão de embarque"
               type="date"
@@ -764,78 +1011,65 @@ export function ProcessoDrawer({
             />
           </div>
         </SecaoDrawer>
-
-        <Separator />
-
-        <SecaoDrawer
-          icon={MessageSquare}
-          titulo="Comentários"
-          badge={<Badge variant="secondary">{processo.comentarios.length}</Badge>}
-          aberto={secoesAbertas.comentarios}
-          onToggle={() => alternarSecao('comentarios')}
-        >
-          {processo.comentarios.length > 0 && (
-            <ul className="flex flex-col gap-3">
-              {processo.comentarios.map((c) => (
-                <li key={c.id} className="flex flex-col gap-1 rounded-md border p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{c.autor}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          atualizarComentario(processo.id, c.id, {
-                            visivelNoPortal: !c.visivelNoPortal,
-                          })
-                        }
-                      >
-                        <Badge
-                          variant={c.visivelNoPortal ? 'default' : 'outline'}
-                          className="cursor-pointer text-xs"
-                        >
-                          {c.visivelNoPortal ? 'Visível no portal' : 'Oculto'}
-                        </Badge>
-                      </button>
-                      <span className="text-muted-foreground text-xs">
-                        {formatarData(c.criadoEm)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm">{c.texto}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="flex flex-col gap-2 rounded-md border p-3">
-            <Textarea
-              placeholder="Adicionar um comentário..."
-              value={novoComentario}
-              onChange={(e) => setNovoComentario(e.target.value)}
-            />
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={comentarioVisivel}
-                  onCheckedChange={(v) => setComentarioVisivel(v === true)}
-                />
-                Visível no portal do cliente
-              </label>
-              <Button size="sm" onClick={enviarComentario} disabled={!novoComentario.trim()}>
-                Adicionar
-              </Button>
-            </div>
-          </div>
-        </SecaoDrawer>
+        <div className="h-10" />
         </>
         )}
 
-        {abaAtiva === 'financeiro' && (
+        {abaAtiva === 'financeiro' && !processo.numerario && (
+          <div className="flex flex-col items-center gap-3 px-5 py-16 text-center">
+            <Wallet className="text-muted-foreground size-8" />
+            <p className="text-muted-foreground text-sm">
+              Nenhum numerário cadastrado para este processo.
+            </p>
+            <Button size="sm" onClick={criarNumerario}>
+              <Plus className="size-4" />
+              Adicionar numerário
+            </Button>
+          </div>
+        )}
+
+        {abaAtiva === 'financeiro' && processo.numerario && (
+          <>
           <div className="flex flex-col gap-4 px-5 py-5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">Numerário</span>
-              <div className="flex shrink-0 items-center gap-1">
-                {numerarioAtual.status !== 'nao_liberado' && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Numerário</span>
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+                  <span
+                    className={cn(
+                      'size-1.5 rounded-full',
+                      NUMERARIO_STATUS_DOT[numerarioAtual.status],
+                    )}
+                  />
+                  {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {!numerarioBloqueado && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="border-destructive text-destructive shadow-xs hover:bg-destructive/10 hover:text-destructive size-8"
+                    onClick={() => setConfirmarExcluirAberto(true)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+                {numerarioBloqueado ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmarDesfazerAberto(true)}
+                  >
+                    Desfazer liberação
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={liberarNumerario}>
+                    Liberar numerário
+                  </Button>
+                )}
+                {numerarioBloqueado && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -845,36 +1079,13 @@ export function ProcessoDrawer({
                     Ver Numerário
                   </Button>
                 )}
-                <Select
-                  value={numerarioAtual.status}
-                  onValueChange={(v) => patchNumerario({ status: v as NumerarioStatus })}
-                >
-                  <SelectTrigger size="sm" className="h-7 w-fit border-none px-2 shadow-none">
-                    <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
-                      <span
-                        className={cn(
-                          'size-1.5 rounded-full',
-                          NUMERARIO_STATUS_DOT[numerarioAtual.status],
-                        )}
-                      />
-                      {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NUMERARIO_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {NUMERARIO_STATUS_LABELS[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
             {numerarioBloqueado && (
               <p className="text-muted-foreground text-xs">
                 Numerário liberado — os dados abaixo não podem mais ser alterados.
-                Selecione "Não liberado" acima para desfazer e ajustar.
+                Clique em "Desfazer liberação" para ajustar.
               </p>
             )}
 
@@ -902,12 +1113,7 @@ export function ProcessoDrawer({
                   value={numerarioAtual.invoice}
                   onChange={(v) => patchNumerario({ invoice: v })}
                 />
-                <EditableField
-                  label="Exportador"
-                  value={numerarioAtual.exportador}
-                  onChange={(v) => patchNumerario({ exportador: v })}
-                />
-                <div className="col-span-2 flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <Label className="text-muted-foreground text-xs font-normal">
                     Cotação moeda
                   </Label>
@@ -921,15 +1127,9 @@ export function ProcessoDrawer({
 
               <Separator />
 
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-muted-foreground text-xs font-normal">
-                  Tributos / Despesas
-                </Label>
-                <Button size="sm" variant="outline" onClick={adicionarTributo}>
-                  <Plus className="size-4" />
-                  Adicionar
-                </Button>
-              </div>
+              <Label className="text-muted-foreground text-xs font-normal">
+                Tributos / Despesas
+              </Label>
 
               {numerarioAtual.tributos.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
@@ -939,13 +1139,14 @@ export function ProcessoDrawer({
                 <ul className="flex flex-col gap-2">
                   {numerarioAtual.tributos.map((item, index) => (
                     <li key={index} className="flex items-center gap-2">
-                      <Input
-                        placeholder="Descrição"
+                      <ComboBoxTexto
                         value={item.descricao}
-                        onChange={(e) =>
-                          atualizarTributo(index, { descricao: e.target.value })
-                        }
-                        className="h-8 flex-1"
+                        onChange={(v) => atualizarTributo(index, { descricao: v })}
+                        opcoesDisponiveis={nomesTributosAtivos}
+                        placeholder="Descrição"
+                        permitirNovo
+                        aoCriarNovo={adicionarTributoCatalogo}
+                        className="flex-1"
                       />
                       <CampoMoeda
                         placeholder="Valor"
@@ -966,18 +1167,25 @@ export function ProcessoDrawer({
                   ))}
                 </ul>
               )}
-            </fieldset>
 
-            <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm font-medium">
-              <span>Total</span>
-              <span>
-                {totalTributos.toLocaleString('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                })}
-              </span>
-            </div>
+              <Button size="sm" variant="outline" className="w-fit" onClick={adicionarTributo}>
+                <Plus className="size-4" />
+                Adicionar
+              </Button>
+            </fieldset>
+            <div className="h-10" />
           </div>
+
+          <div className="bg-background sticky bottom-0 z-10 flex items-center justify-between border-t px-5 py-3 text-sm font-medium">
+            <span>Total</span>
+            <span>
+              {totalTributos.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })}
+            </span>
+          </div>
+          </>
         )}
 
         {abaAtiva === 'di' && (
@@ -1031,6 +1239,79 @@ export function ProcessoDrawer({
               Upload local por enquanto — o armazenamento real dos arquivos entra
               quando o back-end (Supabase Storage) for integrado.
             </p>
+            <div className="h-10" />
+          </div>
+        )}
+
+        {abaAtiva === 'comentarios' && (
+          <div className="flex flex-col gap-3 px-5 py-5">
+            {processo.comentarios.filter((c) => c.ativo).length > 0 && (
+              <ul className="flex flex-col gap-3">
+                {processo.comentarios.filter((c) => c.ativo).map((c) => (
+                  <li key={c.id} className="flex flex-col gap-1 rounded-md border p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{c.autor}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            atualizarComentario(processo.id, c.id, {
+                              visivelNoPortal: !c.visivelNoPortal,
+                            })
+                          }
+                        >
+                          <Badge
+                            variant={c.visivelNoPortal ? 'default' : 'outline'}
+                            className="cursor-pointer text-xs"
+                          >
+                            {c.visivelNoPortal ? 'Visível no portal' : 'Oculto'}
+                          </Badge>
+                        </button>
+                        <span className="text-muted-foreground text-xs">
+                          {formatarData(c.criadoEm)}
+                        </span>
+                        <button
+                          type="button"
+                          title="Inativar comentário"
+                          onClick={() => inativarComentario(processo.id, c.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm">{c.texto}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="flex flex-col gap-2 rounded-md border p-3">
+              <Textarea
+                placeholder="Adicionar um comentário..."
+                value={novoComentario}
+                onChange={(e) => setNovoComentario(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    enviarComentario()
+                  }
+                }}
+              />
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={comentarioVisivel}
+                    onCheckedChange={(v) => setComentarioVisivel(v === true)}
+                  />
+                  Visível no portal do cliente
+                </label>
+                <Button size="sm" onClick={enviarComentario} disabled={!novoComentario.trim()}>
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+            <div className="h-10" />
           </div>
         )}
       </SheetContent>

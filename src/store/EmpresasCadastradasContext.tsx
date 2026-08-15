@@ -13,9 +13,10 @@ interface EmpresasCadastradasContextValue {
     cnpj?: string
   }) => Empresa
   atualizarEmpresa: (id: string, patch: Partial<Empresa>) => void
+  alternarAtivoEmpresa: (id: string) => void
   adicionarContato: (empresaId: string) => void
   atualizarContato: (empresaId: string, contatoId: string, patch: Partial<ContatoEmpresa>) => void
-  removerContato: (empresaId: string, contatoId: string) => void
+  inativarContato: (empresaId: string, contatoId: string) => void
 }
 
 const EmpresasCadastradasContext = createContext<EmpresasCadastradasContextValue | null>(null)
@@ -33,6 +34,7 @@ export function EmpresasCadastradasProvider({ children }: { children: ReactNode 
     const nova: Empresa = {
       id: crypto.randomUUID(),
       contatos: [],
+      ativo: true,
       ...dados,
     }
     setEmpresas((atual) => [nova, ...atual])
@@ -43,11 +45,15 @@ export function EmpresasCadastradasProvider({ children }: { children: ReactNode 
     setEmpresas((atual) => atual.map((e) => (e.id === id ? { ...e, ...patch } : e)))
   }
 
+  function alternarAtivoEmpresa(id: string) {
+    setEmpresas((atual) => atual.map((e) => (e.id === id ? { ...e, ativo: !e.ativo } : e)))
+  }
+
   function adicionarContato(empresaId: string) {
     setEmpresas((atual) =>
       atual.map((e) =>
         e.id === empresaId
-          ? { ...e, contatos: [...e.contatos, { id: crypto.randomUUID(), nome: '' }] }
+          ? { ...e, contatos: [...e.contatos, { id: crypto.randomUUID(), nome: '', ativo: true }] }
           : e,
       ),
     )
@@ -66,11 +72,16 @@ export function EmpresasCadastradasProvider({ children }: { children: ReactNode 
     )
   }
 
-  function removerContato(empresaId: string, contatoId: string) {
+  function inativarContato(empresaId: string, contatoId: string) {
     setEmpresas((atual) =>
       atual.map((e) =>
         e.id === empresaId
-          ? { ...e, contatos: e.contatos.filter((c) => c.id !== contatoId) }
+          ? {
+              ...e,
+              contatos: e.contatos.map((c) =>
+                c.id === contatoId ? { ...c, ativo: false } : c,
+              ),
+            }
           : e,
       ),
     )
@@ -82,9 +93,10 @@ export function EmpresasCadastradasProvider({ children }: { children: ReactNode 
         empresas,
         criarEmpresa,
         atualizarEmpresa,
+        alternarAtivoEmpresa,
         adicionarContato,
         atualizarContato,
-        removerContato,
+        inativarContato,
       }}
     >
       {children}

@@ -3,6 +3,7 @@ import { Package } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { getCliente } from '@/lib/domain-queries'
 import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
+import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
 import type { ProcessoImportacao } from '@/types/domain'
 
 function formatMoeda(valor: number) {
@@ -12,10 +13,12 @@ function formatMoeda(valor: number) {
 
 export function NumerarioPreview({ processo }: { processo: ProcessoImportacao }) {
   const { empresa } = useEmpresaConfig()
+  const { empresas } = useEmpresasCadastradas()
   const numerario = processo.numerario
   if (!numerario) return null
 
   const cliente = getCliente(processo.clienteId)
+  const exportador = empresas.find((e) => e.id === processo.exportadorId)
   const total = numerario.tributos.reduce((soma, item) => soma + item.valor, 0)
 
   return (
@@ -69,7 +72,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
         </div>
         <div>
           <span className="text-muted-foreground">Exportador: </span>
-          {numerario.exportador}
+          {exportador?.nomeFantasia || '—'}
         </div>
         <div>
           <span className="text-muted-foreground">Cotação moeda: </span>

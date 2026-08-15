@@ -5,6 +5,7 @@ export const PI_STATUSES = [
   'desembaraco',
   'carregamento',
   'encerramento',
+  'cancelado',
 ] as const
 
 export type PiStatus = (typeof PI_STATUSES)[number]
@@ -16,6 +17,7 @@ export const PI_STATUS_LABELS: Record<PiStatus, string> = {
   desembaraco: 'Desembaraço',
   carregamento: 'Carregamento',
   encerramento: 'Encerramento',
+  cancelado: 'Cancelado',
 }
 
 export type Modal = 'maritimo' | 'rodoviario' | 'aereo' | 'ferroviario'
@@ -59,6 +61,8 @@ export interface ContatoEmpresa {
   nome: string
   telefone?: string
   email?: string
+  /** Soft delete — contato inativo some das listagens mas nunca é removido. */
+  ativo: boolean
 }
 
 export interface Empresa {
@@ -76,6 +80,8 @@ export interface Empresa {
   telefone?: string
   email?: string
   contatos: ContatoEmpresa[]
+  /** Soft delete — empresa inativa some das listagens/sugestões mas nunca é removida. */
+  ativo: boolean
 }
 
 export interface Usuario {
@@ -93,6 +99,8 @@ export interface Comentario {
   criadoEm: string
   visivelNoPortal: boolean
   estagio?: PiStatus
+  /** Soft delete — comentário inativo some da timeline mas nunca é removido. */
+  ativo: boolean
 }
 
 export interface Anexo {
@@ -110,6 +118,11 @@ export interface ItemTributo {
   valor: number
 }
 
+export interface TributoCatalogo {
+  nome: string
+  ativo: boolean
+}
+
 export interface DadosBancarios {
   banco: string
   agencia: string
@@ -122,7 +135,7 @@ export const NUMERARIO_STATUSES = ['nao_liberado', 'liberado', 'pago', 'cancelad
 export type NumerarioStatus = (typeof NUMERARIO_STATUSES)[number]
 
 export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
-  nao_liberado: 'Não liberado',
+  nao_liberado: 'Em digitação',
   liberado: 'Liberado',
   pago: 'Pago',
   cancelado: 'Cancelado',
@@ -130,7 +143,6 @@ export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
 
 export interface Numerario {
   invoice: string
-  exportador: string
   cotacaoMoeda: number
   tributos: ItemTributo[]
   status: NumerarioStatus
@@ -157,12 +169,14 @@ export interface ProcessoImportacao {
   modal: Modal
   fornecedoresCotadosIds?: string[]
   fornecedorFreteId?: string
-  exportador?: string
+  /** FK para Empresa com tiposRelacionamento incluindo 'exportador'. */
+  exportadorId?: string
   referenciaCliente?: string
   licencaImportacao?: boolean
   tipoCarga?: TipoCarga
+  navio?: string
   origem?: string
-  portoDestino?: string
+  destino?: string
   previsaoEmbarque?: string
   previsaoChegada?: string
   hblHawb?: string
