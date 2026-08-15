@@ -185,10 +185,10 @@ export const processos: ProcessoImportacao[] = [
     hblHawb: 'HBL-88231',
     conhecimentoEmbarque: 'CE-2026-004471',
     numerario: {
-      produto: 'BROMOPRIDA',
       invoice: '90002848',
       exportador: 'Sunrise Pharma Exports Ltd.',
       cotacaoMoeda: 5.16,
+      status: 'liberado',
       tributos: [
         { descricao: 'Frete internacional e taxas', valor: 10000 },
         { descricao: 'Anuência - Anvisa', valor: 178 },
@@ -255,10 +255,10 @@ export const processos: ProcessoImportacao[] = [
     dataCi: '2026-07-09',
     dataIcms: '2026-07-10',
     numerario: {
-      produto: 'Tecido sintético em rolos',
       invoice: '90002911',
       exportador: 'Guangdong Weave Textiles Co.',
       cotacaoMoeda: 5.21,
+      status: 'pago',
       tributos: [
         { descricao: 'Frete internacional e taxas', valor: 4200 },
         { descricao: 'Anuência - Anvisa', valor: 0 },

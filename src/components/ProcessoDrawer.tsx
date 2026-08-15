@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Paperclip,
   MessageSquare,
   FileText,
   Plus,
@@ -11,10 +10,10 @@ import {
   Boxes,
   Landmark,
   Route,
-  Wallet,
   X,
   FoldVertical,
   UnfoldVertical,
+  Construction,
 } from 'lucide-react'
 
 import {
@@ -53,15 +52,21 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { NumerarioPreview } from '@/components/NumerarioPreview'
 import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
+import { cn } from '@/lib/utils'
 import { empresas } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
 import {
   MODAL_LABELS,
+  NUMERARIO_STATUSES,
+  NUMERARIO_STATUS_LABELS,
   PI_STATUSES,
   PI_STATUS_LABELS,
   TIPO_CARGA_LABELS,
   type Anexo,
+  type ItemTributo,
   type Modal,
+  type Numerario,
+  type NumerarioStatus,
   type PiStatus,
   type ProcessoImportacao,
   type TipoCarga,
@@ -152,15 +157,60 @@ function AnexoRow({
   )
 }
 
+function CampoMoeda({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  className,
+}: {
+  value: number
+  onChange: (valor: number) => void
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm">
+        R$
+      </span>
+      <Input
+        type="number"
+        step="0.01"
+        placeholder={placeholder}
+        value={value || ''}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        disabled={disabled}
+        className="h-8 pl-9"
+      />
+    </div>
+  )
+}
+
+const NUMERARIO_STATUS_DOT: Record<NumerarioStatus, string> = {
+  nao_liberado: 'bg-muted-foreground',
+  liberado: 'bg-blue-500',
+  pago: 'bg-emerald-500',
+  cancelado: 'bg-destructive',
+}
+
 const SECOES_PADRAO: Record<string, boolean> = {
   transporte: true,
   frete: false,
   produtos: false,
-  financeiro: false,
   desembaraco: false,
-  anexos: false,
   comentarios: false,
 }
+
+const ABAS_DRAWER = [
+  { id: 'processo', label: 'Processo' },
+  { id: 'financeiro', label: 'Financeiro' },
+  { id: 'di', label: 'Digitação de DI' },
+  { id: 'anexos', label: 'Anexos' },
+] as const
+
+type AbaDrawer = (typeof ABAS_DRAWER)[number]['id']
 
 export function ProcessoDrawer({
   processo,
@@ -190,9 +240,11 @@ export function ProcessoDrawer({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [secoesAbertas, setSecoesAbertas] = useState<Record<string, boolean>>(SECOES_PADRAO)
+  const [abaAtiva, setAbaAtiva] = useState<AbaDrawer>('processo')
 
   useEffect(() => {
     setSecoesAbertas(SECOES_PADRAO)
+    setAbaAtiva('processo')
   }, [processo?.id])
 
   function alternarSecao(chave: string) {
@@ -230,6 +282,36 @@ export function ProcessoDrawer({
 
   function patch(campo: keyof ProcessoImportacao, valor: string) {
     atualizarProcesso(processo!.id, { [campo]: valor || undefined })
+  }
+
+  const numerarioAtual: Numerario = processo.numerario ?? {
+    invoice: '',
+    exportador: '',
+    cotacaoMoeda: 0,
+    tributos: [],
+    status: 'nao_liberado',
+  }
+  const totalTributos = numerarioAtual.tributos.reduce((soma, item) => soma + item.valor, 0)
+  const numerarioBloqueado = numerarioAtual.status !== 'nao_liberado'
+
+  function patchNumerario(campo: Partial<Numerario>) {
+    atualizarProcesso(processo!.id, { numerario: { ...numerarioAtual, ...campo } })
+  }
+
+  function adicionarTributo() {
+    patchNumerario({ tributos: [...numerarioAtual.tributos, { descricao: '', valor: 0 }] })
+  }
+
+  function atualizarTributo(index: number, campo: Partial<ItemTributo>) {
+    patchNumerario({
+      tributos: numerarioAtual.tributos.map((item, i) =>
+        i === index ? { ...item, ...campo } : item,
+      ),
+    })
+  }
+
+  function removerTributo(index: number) {
+    patchNumerario({ tributos: numerarioAtual.tributos.filter((_, i) => i !== index) })
   }
 
   function enviarComentario() {
@@ -271,48 +353,75 @@ export function ProcessoDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl">
-        <SheetHeader>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex flex-col gap-0.5">
-              <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
-              <SheetDescription>{cliente?.nomeFantasia}</SheetDescription>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                title={todasAbertas ? 'Recolher todas as seções' : 'Expandir todas as seções'}
-                onClick={alternarTodasSecoes}
-              >
-                {todasAbertas ? (
-                  <FoldVertical className="size-4" />
-                ) : (
-                  <UnfoldVertical className="size-4" />
+        <div className="bg-background sticky top-0 z-10 flex flex-col gap-0">
+          <SheetHeader>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-0.5">
+                <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
+                <SheetDescription>{cliente?.nomeFantasia}</SheetDescription>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {abaAtiva === 'processo' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    title={
+                      todasAbertas ? 'Recolher todas as seções' : 'Expandir todas as seções'
+                    }
+                    onClick={alternarTodasSecoes}
+                  >
+                    {todasAbertas ? (
+                      <FoldVertical className="size-4" />
+                    ) : (
+                      <UnfoldVertical className="size-4" />
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <Select
-                value={processo.status}
-                onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="h-7 w-fit shrink-0 border-none px-2 shadow-none"
+                <Select
+                  value={processo.status}
+                  onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
                 >
-                  <StatusBadge status={processo.status} />
-                </SelectTrigger>
-                <SelectContent>
-                  {PI_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {PI_STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger
+                    size="sm"
+                    className="h-7 w-fit shrink-0 border-none px-2 shadow-none"
+                  >
+                    <StatusBadge status={processo.status} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PI_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {PI_STATUS_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+          </SheetHeader>
+
+          <div className="flex items-center gap-1 border-b px-5">
+            {ABAS_DRAWER.map((aba) => (
+              <button
+                key={aba.id}
+                type="button"
+                onClick={() => setAbaAtiva(aba.id)}
+                className={cn(
+                  '-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                  abaAtiva === aba.id
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {aba.label}
+                {aba.id === 'anexos' && processo.anexos.length > 0 && (
+                  <Badge variant="secondary">{processo.anexos.length}</Badge>
+                )}
+              </button>
+            ))}
           </div>
-        </SheetHeader>
+        </div>
 
         {processo.numerario && (
           <Dialog open={numerarioAberto} onOpenChange={setNumerarioAberto}>
@@ -332,6 +441,8 @@ export function ProcessoDrawer({
           </Dialog>
         )}
 
+        {abaAtiva === 'processo' && (
+        <>
         <Separator />
 
         {/* Informações primárias */}
@@ -614,42 +725,6 @@ export function ProcessoDrawer({
         <Separator />
 
         <SecaoDrawer
-          icon={Wallet}
-          titulo="Financeiro"
-          aberto={secoesAbertas.financeiro}
-          onToggle={() => alternarSecao('financeiro')}
-        >
-          {processo.numerario && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-fit"
-              onClick={() => setNumerarioAberto(true)}
-            >
-              <FileText className="size-4" />
-              Ver Numerário
-            </Button>
-          )}
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-            <EditableField
-              label="Data de emissão"
-              type="date"
-              value={processo.numerarioEnviadoEm ?? ''}
-              onChange={(v) => patch('numerarioEnviadoEm', v)}
-            />
-            <EditableField
-              label="Data de pagamento"
-              type="date"
-              value={processo.numerarioPagoEm ?? ''}
-              onChange={(v) => patch('numerarioPagoEm', v)}
-            />
-          </div>
-        </SecaoDrawer>
-
-        <Separator />
-
-        <SecaoDrawer
           icon={Landmark}
           titulo="Desembaraço"
           aberto={secoesAbertas.desembaraco}
@@ -688,55 +763,6 @@ export function ProcessoDrawer({
               onChange={(v) => patch('dataEncerramento', v)}
             />
           </div>
-        </SecaoDrawer>
-
-        <Separator />
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={selecionarArquivos}
-        />
-
-        <SecaoDrawer
-          icon={Paperclip}
-          titulo="Anexos"
-          badge={<Badge variant="secondary">{processo.anexos.length}</Badge>}
-          acoes={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Plus className="size-4" />
-              Adicionar
-            </Button>
-          }
-          aberto={secoesAbertas.anexos}
-          onToggle={() => alternarSecao('anexos')}
-        >
-          {processo.anexos.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhum anexo.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {processo.anexos.map((a) => (
-                <AnexoRow
-                  key={a.id}
-                  anexo={a}
-                  onRename={(nome) => atualizarAnexo(processo.id, a.id, { nomeArquivo: nome })}
-                  onToggleVisibilidade={(visivel) =>
-                    atualizarAnexo(processo.id, a.id, { visivelNoPortal: visivel })
-                  }
-                />
-              ))}
-            </ul>
-          )}
-          <p className="text-muted-foreground text-xs">
-            Upload local por enquanto — o armazenamento real dos arquivos entra
-            quando o back-end (Supabase Storage) for integrado.
-          </p>
         </SecaoDrawer>
 
         <Separator />
@@ -801,6 +827,212 @@ export function ProcessoDrawer({
             </div>
           </div>
         </SecaoDrawer>
+        </>
+        )}
+
+        {abaAtiva === 'financeiro' && (
+          <div className="flex flex-col gap-4 px-5 py-5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">Numerário</span>
+              <div className="flex shrink-0 items-center gap-1">
+                {numerarioAtual.status !== 'nao_liberado' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNumerarioAberto(true)}
+                  >
+                    <FileText className="size-4" />
+                    Ver Numerário
+                  </Button>
+                )}
+                <Select
+                  value={numerarioAtual.status}
+                  onValueChange={(v) => patchNumerario({ status: v as NumerarioStatus })}
+                >
+                  <SelectTrigger size="sm" className="h-7 w-fit border-none px-2 shadow-none">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+                      <span
+                        className={cn(
+                          'size-1.5 rounded-full',
+                          NUMERARIO_STATUS_DOT[numerarioAtual.status],
+                        )}
+                      />
+                      {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NUMERARIO_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {NUMERARIO_STATUS_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {numerarioBloqueado && (
+              <p className="text-muted-foreground text-xs">
+                Numerário liberado — os dados abaixo não podem mais ser alterados.
+                Selecione "Não liberado" acima para desfazer e ajustar.
+              </p>
+            )}
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+              <EditableField
+                label="Data de emissão"
+                type="date"
+                value={processo.numerarioEnviadoEm ?? ''}
+                onChange={(v) => patch('numerarioEnviadoEm', v)}
+              />
+              <EditableField
+                label="Data de pagamento"
+                type="date"
+                value={processo.numerarioPagoEm ?? ''}
+                onChange={(v) => patch('numerarioPagoEm', v)}
+              />
+            </div>
+
+            <Separator />
+
+            <fieldset disabled={numerarioBloqueado} className="contents">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <EditableField
+                  label="Invoice"
+                  value={numerarioAtual.invoice}
+                  onChange={(v) => patchNumerario({ invoice: v })}
+                />
+                <EditableField
+                  label="Exportador"
+                  value={numerarioAtual.exportador}
+                  onChange={(v) => patchNumerario({ exportador: v })}
+                />
+                <div className="col-span-2 flex flex-col gap-1">
+                  <Label className="text-muted-foreground text-xs font-normal">
+                    Cotação moeda
+                  </Label>
+                  <CampoMoeda
+                    value={numerarioAtual.cotacaoMoeda}
+                    onChange={(v) => patchNumerario({ cotacaoMoeda: v })}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-muted-foreground text-xs font-normal">
+                  Tributos / Despesas
+                </Label>
+                <Button size="sm" variant="outline" onClick={adicionarTributo}>
+                  <Plus className="size-4" />
+                  Adicionar
+                </Button>
+              </div>
+
+              {numerarioAtual.tributos.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nenhum tributo ou despesa cadastrado.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {numerarioAtual.tributos.map((item, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <Input
+                        placeholder="Descrição"
+                        value={item.descricao}
+                        onChange={(e) =>
+                          atualizarTributo(index, { descricao: e.target.value })
+                        }
+                        className="h-8 flex-1"
+                      />
+                      <CampoMoeda
+                        placeholder="Valor"
+                        value={item.valor}
+                        onChange={(v) => atualizarTributo(index, { valor: v })}
+                        className="w-32 shrink-0"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 shrink-0"
+                        onClick={() => removerTributo(index)}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </fieldset>
+
+            <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm font-medium">
+              <span>Total</span>
+              <span>
+                {totalTributos.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'di' && (
+          <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
+            <Construction className="text-muted-foreground size-8" />
+            <p className="text-muted-foreground text-sm">
+              Digitação de DI em construção.
+            </p>
+          </div>
+        )}
+
+        {abaAtiva === 'anexos' && (
+          <div className="flex flex-col gap-3 px-5 py-5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs">
+                {processo.anexos.length} anexo{processo.anexos.length === 1 ? '' : 's'}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Plus className="size-4" />
+                Adicionar
+              </Button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={selecionarArquivos}
+            />
+            {processo.anexos.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhum anexo.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {processo.anexos.map((a) => (
+                  <AnexoRow
+                    key={a.id}
+                    anexo={a}
+                    onRename={(nome) => atualizarAnexo(processo.id, a.id, { nomeArquivo: nome })}
+                    onToggleVisibilidade={(visivel) =>
+                      atualizarAnexo(processo.id, a.id, { visivelNoPortal: visivel })
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+            <p className="text-muted-foreground text-xs">
+              Upload local por enquanto — o armazenamento real dos arquivos entra
+              quando o back-end (Supabase Storage) for integrado.
+            </p>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )

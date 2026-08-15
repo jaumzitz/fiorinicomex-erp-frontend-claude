@@ -61,7 +61,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
         </div>
         <div>
           <span className="text-muted-foreground">Produto: </span>
-          {numerario.produto}
+          {processo.produtos.join(', ') || '—'}
         </div>
         <div>
           <span className="text-muted-foreground">Invoice: </span>
@@ -84,9 +84,9 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
         Tributos / Despesas
       </div>
       <div className="border border-t-0">
-        {numerario.tributos.map((item) => (
+        {numerario.tributos.map((item, index) => (
           <div
-            key={item.descricao}
+            key={index}
             className="flex items-center justify-between border-b px-3 py-1.5 last:border-b-0"
           >
             <span>{item.descricao}</span>

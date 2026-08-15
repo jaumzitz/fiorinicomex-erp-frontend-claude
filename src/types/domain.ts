@@ -117,12 +117,23 @@ export interface DadosBancarios {
   pix: string
 }
 
+export const NUMERARIO_STATUSES = ['nao_liberado', 'liberado', 'pago', 'cancelado'] as const
+
+export type NumerarioStatus = (typeof NUMERARIO_STATUSES)[number]
+
+export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
+  nao_liberado: 'Não liberado',
+  liberado: 'Liberado',
+  pago: 'Pago',
+  cancelado: 'Cancelado',
+}
+
 export interface Numerario {
-  produto: string
   invoice: string
   exportador: string
   cotacaoMoeda: number
   tributos: ItemTributo[]
+  status: NumerarioStatus
 }
 
 export interface EmpresaConfig {
