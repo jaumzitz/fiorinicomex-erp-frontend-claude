@@ -250,13 +250,16 @@ export function ProcessoDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <div className="flex items-center gap-2">
-            <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-0.5">
+              <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
+              <SheetDescription>{cliente?.nome}</SheetDescription>
+            </div>
             <Select
               value={processo.status}
               onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
             >
-              <SelectTrigger size="sm" className="h-7 w-fit border-none px-2 shadow-none">
+              <SelectTrigger size="sm" className="h-7 w-fit shrink-0 border-none px-2 shadow-none">
                 <StatusBadge status={processo.status} />
               </SelectTrigger>
               <SelectContent>
@@ -268,7 +271,6 @@ export function ProcessoDrawer({
               </SelectContent>
             </Select>
           </div>
-          <SheetDescription>{cliente?.nome}</SheetDescription>
         </SheetHeader>
 
         {processo.numerario && (
@@ -301,20 +303,16 @@ export function ProcessoDrawer({
             <Label className="text-muted-foreground text-xs font-normal">CNPJ</Label>
             <span className="text-sm">{cliente?.cnpj}</span>
           </div>
-          <div className="col-span-2">
-            <EditableField
-              label="Exportador"
-              value={processo.exportador ?? ''}
-              onChange={(v) => patch('exportador', v)}
-            />
-          </div>
-          <div className="col-span-2">
-            <EditableField
-              label="Referência cliente"
-              value={processo.referenciaCliente ?? ''}
-              onChange={(v) => patch('referenciaCliente', v)}
-            />
-          </div>
+          <EditableField
+            label="Exportador"
+            value={processo.exportador ?? ''}
+            onChange={(v) => patch('exportador', v)}
+          />
+          <EditableField
+            label="Referência cliente"
+            value={processo.referenciaCliente ?? ''}
+            onChange={(v) => patch('referenciaCliente', v)}
+          />
         </div>
 
         <Separator />
@@ -349,7 +347,7 @@ export function ProcessoDrawer({
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-muted-foreground text-xs font-normal">
-                Licença de Importação (LI)
+                LPCO
               </Label>
               <div className="flex h-8 items-center gap-2">
                 <Switch
@@ -642,6 +640,14 @@ export function ProcessoDrawer({
                 type="date"
                 value={processo.dataIcms ?? ''}
                 onChange={(v) => patch('dataIcms', v)}
+              />
+            </div>
+            <div className="col-span-2">
+              <EditableField
+                label="Data de encerramento"
+                type="date"
+                value={processo.dataEncerramento ?? ''}
+                onChange={(v) => patch('dataEncerramento', v)}
               />
             </div>
           </div>

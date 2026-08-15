@@ -148,6 +148,7 @@ export interface ProcessoImportacao {
   dataCi?: string
   dataSiscargo?: string
   dataIcms?: string
+  dataEncerramento?: string
   produtos: string[]
   criadoEm: string
   atualizadoEm: string
