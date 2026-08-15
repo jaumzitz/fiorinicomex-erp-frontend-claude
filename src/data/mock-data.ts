@@ -284,6 +284,7 @@ export const processos: ProcessoImportacao[] = [
     fornecedorFreteId: 'for-2',
     dataChegada: '2026-06-20',
     numerarioPagoEm: '2026-06-21',
+    dataEncerramento: '2026-07-01',
     produtos: ['Rolamentos industriais'],
     criadoEm: '2026-05-28',
     atualizadoEm: '2026-07-01',
