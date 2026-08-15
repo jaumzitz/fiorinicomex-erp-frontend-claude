@@ -61,6 +61,8 @@ export interface ContatoEmpresa {
   nome: string
   telefone?: string
   email?: string
+  /** Soft delete — contato inativo some das listagens mas nunca é removido. */
+  ativo: boolean
 }
 
 export interface Empresa {
@@ -78,6 +80,8 @@ export interface Empresa {
   telefone?: string
   email?: string
   contatos: ContatoEmpresa[]
+  /** Soft delete — empresa inativa some das listagens/sugestões mas nunca é removida. */
+  ativo: boolean
 }
 
 export interface Usuario {
@@ -95,6 +99,8 @@ export interface Comentario {
   criadoEm: string
   visivelNoPortal: boolean
   estagio?: PiStatus
+  /** Soft delete — comentário inativo some da timeline mas nunca é removido. */
+  ativo: boolean
 }
 
 export interface Anexo {
@@ -163,7 +169,8 @@ export interface ProcessoImportacao {
   modal: Modal
   fornecedoresCotadosIds?: string[]
   fornecedorFreteId?: string
-  exportador?: string
+  /** FK para Empresa com tiposRelacionamento incluindo 'exportador'. */
+  exportadorId?: string
   referenciaCliente?: string
   licencaImportacao?: boolean
   tipoCarga?: TipoCarga

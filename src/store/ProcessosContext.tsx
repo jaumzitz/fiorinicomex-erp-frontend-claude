@@ -12,9 +12,9 @@ interface ProcessosContextValue {
   }) => ProcessoImportacao
   atualizarProcesso: (id: string, patch: Partial<ProcessoImportacao>) => void
   alterarStatus: (id: string, status: PiStatus) => void
-  adicionarComentario: (id: string, comentario: Omit<Comentario, 'id'>) => void
+  adicionarComentario: (id: string, comentario: Omit<Comentario, 'id' | 'ativo'>) => void
   atualizarComentario: (id: string, comentarioId: string, patch: Partial<Comentario>) => void
-  removerComentario: (id: string, comentarioId: string) => void
+  inativarComentario: (id: string, comentarioId: string) => void
   adicionarAnexos: (id: string, anexos: Array<Omit<Anexo, 'id'>>) => void
   atualizarAnexo: (id: string, anexoId: string, patch: Partial<Anexo>) => void
   alternarFornecedorCotado: (id: string, fornecedorId: string) => void
@@ -66,13 +66,16 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
     atualizarProcesso(id, { status })
   }
 
-  function adicionarComentario(id: string, comentario: Omit<Comentario, 'id'>) {
+  function adicionarComentario(id: string, comentario: Omit<Comentario, 'id' | 'ativo'>) {
     setProcessos((atual) =>
       atual.map((p) =>
         p.id === id
           ? {
               ...p,
-              comentarios: [...p.comentarios, { ...comentario, id: crypto.randomUUID() }],
+              comentarios: [
+                ...p.comentarios,
+                { ...comentario, id: crypto.randomUUID(), ativo: true },
+              ],
               atualizadoEm: hoje(),
             }
           : p,
@@ -134,11 +137,16 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  function removerComentario(id: string, comentarioId: string) {
+  function inativarComentario(id: string, comentarioId: string) {
     setProcessos((atual) =>
       atual.map((p) =>
         p.id === id
-          ? { ...p, comentarios: p.comentarios.filter((c) => c.id !== comentarioId) }
+          ? {
+              ...p,
+              comentarios: p.comentarios.map((c) =>
+                c.id === comentarioId ? { ...c, ativo: false } : c,
+              ),
+            }
           : p,
       ),
     )
@@ -186,7 +194,7 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
         alterarStatus,
         adicionarComentario,
         atualizarComentario,
-        removerComentario,
+        inativarComentario,
         adicionarAnexos,
         atualizarAnexo,
         alternarFornecedorCotado,

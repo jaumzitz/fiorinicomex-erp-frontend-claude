@@ -39,6 +39,9 @@ create table empresas (
   site text,
   telefone text,
   email text,
+  -- Soft delete — nunca DELETE, para não quebrar FKs de processos/numerarios
+  -- que já referenciam a empresa.
+  ativo boolean not null default true,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   constraint empresas_identificacao_check check (
@@ -66,7 +69,9 @@ create table contatos_empresa (
   empresa_id uuid not null references empresas(id) on delete cascade,
   nome text not null,
   telefone text,
-  email text
+  email text,
+  -- Soft delete, mesmo padrão de empresas.ativo.
+  ativo boolean not null default true
 );
 
 create index contatos_empresa_empresa_id_idx on contatos_empresa(empresa_id);
@@ -123,7 +128,8 @@ create type pi_status as enum (
   'em_transito',
   'desembaraco',
   'carregamento',
-  'encerramento'
+  'encerramento',
+  'cancelado'
 );
 
 create type pi_modal as enum (
@@ -144,17 +150,19 @@ create table processos (
   fornecedor_frete_id uuid references empresas(id),
 
   -- Informações primárias
-  -- "exportador" segue texto livre por enquanto (ver observação da
-  -- conversa) — candidato a virar exportador_id (fk -> empresas) numa
-  -- fase futura, quando houver um seletor com opção de cadastro inline.
-  exportador text,
+  -- fk para empresas com tipo 'exportador'. A UI do PI sugere empresas já
+  -- cadastradas e cria um registro novo automaticamente quando o nome
+  -- digitado não corresponde a nenhuma (resolvido 2026-08-15).
+  exportador_id uuid references empresas(id),
   referencia_cliente text,
 
   -- Transporte
   licenca_importacao boolean,
   tipo_carga pi_tipo_carga,
+  -- Só relevante quando modal = 'maritimo' (validação fica a cargo da aplicação).
+  navio text,
   origem text,
-  porto_destino text,
+  destino text,
   previsao_embarque date,
   previsao_chegada date,
   hbl_hawb text,
@@ -180,6 +188,7 @@ create table processos (
 
 create index processos_cliente_id_idx on processos(cliente_id);
 create index processos_fornecedor_frete_id_idx on processos(fornecedor_frete_id);
+create index processos_exportador_id_idx on processos(exportador_id);
 create index processos_status_idx on processos(status);
 
 create trigger processos_set_atualizado_em
@@ -206,20 +215,57 @@ create index processo_produtos_processo_id_idx on processo_produtos(processo_id)
 -- Numerário
 -- ============================================================
 
+-- nao_liberado: em digitação, tudo editável.
+-- liberado: travado para edição (o front-end aplica isso via <fieldset disabled>),
+--   pode ser desfeito de volta para nao_liberado.
+-- pago / cancelado: estados finais alcançados a partir de liberado.
+create type numerario_status as enum (
+  'nao_liberado',
+  'liberado',
+  'pago',
+  'cancelado'
+);
+
 create table numerarios (
   id uuid primary key default gen_random_uuid(),
   processo_id uuid not null unique references processos(id) on delete cascade,
-  produto text not null,
-  invoice text not null,
-  exportador text not null,
-  cotacao_moeda numeric(12, 4) not null
+  invoice text not null default '',
+  cotacao_moeda numeric(12, 4) not null default 0,
+  status numerario_status not null default 'nao_liberado'
+  -- "produto" e "exportador" não são colunas aqui de propósito: duplicariam
+  -- processos.produtos / processos.exportador. A geração do numerário (PDF)
+  -- deve buscar esses valores do processo pai.
 );
+
+-- Catálogo compartilhado de descrições de tributo/despesa sugeridas ao
+-- cadastrar um item em numerario_tributos.descricao. Soft-delete via
+-- "ativo" — nunca DELETE, para não quebrar a FK opcional abaixo.
+create table tributos_catalogo (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null unique,
+  ativo boolean not null default true
+);
+
+-- Seed: itens padrão que entram em todo numerário novo (ver criarNumerario()
+-- no front-end / TRIBUTOS_CATALOGO_PADRAO em src/data/mock-data.ts).
+insert into tributos_catalogo (nome) values
+  ('Frete Internacional e Taxas'),
+  ('IPI'),
+  ('PIS'),
+  ('COFINS'),
+  ('Taxa Siscomex'),
+  ('ICMS');
 
 create table numerario_tributos (
   id uuid primary key default gen_random_uuid(),
   numerario_id uuid not null references numerarios(id) on delete cascade,
+  -- Cópia do valor no momento do cadastro — não deve mudar retroativamente
+  -- se o item do catálogo for renomeado ou inativado depois.
   descricao text not null,
-  valor numeric(14, 2) not null
+  valor numeric(14, 2) not null,
+  -- Opcional: só para permitir relatórios agregados por tipo de tributo
+  -- sem depender de match textual em "descricao".
+  tributo_catalogo_id uuid references tributos_catalogo(id)
 );
 
 create index numerario_tributos_numerario_id_idx on numerario_tributos(numerario_id);
@@ -235,7 +281,9 @@ create table comentarios (
   texto text not null,
   criado_em timestamptz not null default now(),
   visivel_no_portal boolean not null default false,
-  estagio pi_status
+  estagio pi_status,
+  -- Soft delete — "inativar" some da timeline mas preserva o registro.
+  ativo boolean not null default true
 );
 
 create index comentarios_processo_id_idx on comentarios(processo_id);

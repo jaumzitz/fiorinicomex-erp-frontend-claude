@@ -55,8 +55,9 @@ import { NumerarioPreview } from '@/components/NumerarioPreview'
 import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
 import { cn } from '@/lib/utils'
-import { empresas, TRIBUTOS_CATALOGO_PADRAO } from '@/data/mock-data'
+import { TRIBUTOS_CATALOGO_PADRAO } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
+import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
 import { useTributosCatalogo } from '@/store/TributosCatalogoContext'
 import {
   MODAL_LABELS,
@@ -349,7 +350,7 @@ export function ProcessoDrawer({
     alterarStatus,
     adicionarComentario,
     atualizarComentario,
-    removerComentario,
+    inativarComentario,
     adicionarAnexos,
     atualizarAnexo,
     alternarFornecedorCotado,
@@ -357,6 +358,7 @@ export function ProcessoDrawer({
     adicionarProduto,
     removerProduto,
   } = useProcessos()
+  const { empresas, criarEmpresa } = useEmpresasCadastradas()
   const { tributosCatalogo, adicionarTributoCatalogo } = useTributosCatalogo()
   const [numerarioAberto, setNumerarioAberto] = useState(false)
   const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
@@ -403,14 +405,41 @@ export function ProcessoDrawer({
   if (!processo) return null
 
   const cliente = getCliente(processo.clienteId)
-  const fornecedoresFrete = empresas.filter((e) => e.tiposRelacionamento.includes('fornecedor_frete'))
-  const exportadores = empresas.filter((e) => e.tiposRelacionamento.includes('exportador'))
+  const fornecedoresFrete = empresas.filter(
+    (e) => e.ativo && e.tiposRelacionamento.includes('fornecedor_frete'),
+  )
+  const exportadores = empresas.filter(
+    (e) => e.ativo && e.tiposRelacionamento.includes('exportador'),
+  )
+  const exportadorAtual = empresas.find((e) => e.id === processo.exportadorId)
   const cotados = processo.fornecedoresCotadosIds ?? []
   const maritimo = processo.modal === 'maritimo'
   const nomesTributosAtivos = tributosCatalogo.filter((t) => t.ativo).map((t) => t.nome)
 
   function patch(campo: keyof ProcessoImportacao, valor: string) {
     atualizarProcesso(processo!.id, { [campo]: valor || undefined })
+  }
+
+  function selecionarExportador(nome: string) {
+    const limpo = nome.trim()
+    if (!limpo) {
+      atualizarProcesso(processo!.id, { exportadorId: undefined })
+      return
+    }
+    const existente = empresas.find(
+      (e) => e.tiposRelacionamento.includes('exportador') && e.nomeFantasia.toLowerCase() === limpo.toLowerCase(),
+    )
+    if (existente) {
+      atualizarProcesso(processo!.id, { exportadorId: existente.id })
+      return
+    }
+    const nova = criarEmpresa({
+      nomeFantasia: limpo,
+      razaoSocial: limpo,
+      tiposRelacionamento: ['exportador'],
+      estrangeira: true,
+    })
+    atualizarProcesso(processo!.id, { exportadorId: nova.id })
   }
 
   const numerarioAtual: Numerario = processo.numerario ?? {
@@ -569,8 +598,10 @@ export function ProcessoDrawer({
                 {aba.id === 'anexos' && processo.anexos.length > 0 && (
                   <Badge variant="secondary">{processo.anexos.length}</Badge>
                 )}
-                {aba.id === 'comentarios' && processo.comentarios.length > 0 && (
-                  <Badge variant="secondary">{processo.comentarios.length}</Badge>
+                {aba.id === 'comentarios' && processo.comentarios.filter((c) => c.ativo).length > 0 && (
+                  <Badge variant="secondary">
+                    {processo.comentarios.filter((c) => c.ativo).length}
+                  </Badge>
                 )}
               </button>
             ))}
@@ -663,8 +694,8 @@ export function ProcessoDrawer({
           <div className="flex flex-col gap-1">
             <Label className="text-muted-foreground text-xs font-normal">Exportador</Label>
             <ComboBoxTexto
-              value={processo.exportador ?? ''}
-              onChange={(v) => patch('exportador', v)}
+              value={exportadorAtual?.nomeFantasia ?? ''}
+              onChange={selecionarExportador}
               opcoesDisponiveis={exportadores.map((e) => e.nomeFantasia)}
               className="w-full"
             />
@@ -1214,9 +1245,9 @@ export function ProcessoDrawer({
 
         {abaAtiva === 'comentarios' && (
           <div className="flex flex-col gap-3 px-5 py-5">
-            {processo.comentarios.length > 0 && (
+            {processo.comentarios.filter((c) => c.ativo).length > 0 && (
               <ul className="flex flex-col gap-3">
-                {processo.comentarios.map((c) => (
+                {processo.comentarios.filter((c) => c.ativo).map((c) => (
                   <li key={c.id} className="flex flex-col gap-1 rounded-md border p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{c.autor}</span>
@@ -1241,8 +1272,8 @@ export function ProcessoDrawer({
                         </span>
                         <button
                           type="button"
-                          title="Excluir comentário"
-                          onClick={() => removerComentario(processo.id, c.id)}
+                          title="Inativar comentário"
+                          onClick={() => inativarComentario(processo.id, c.id)}
                           className="text-muted-foreground hover:text-destructive"
                         >
                           <X className="size-3.5" />

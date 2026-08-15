@@ -3,7 +3,7 @@ import { Calendar } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ModalIcon } from '@/components/ModalIcon'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { getCliente } from '@/lib/domain-queries'
+import { getCliente, getEmpresa } from '@/lib/domain-queries'
 import { formatarData } from '@/lib/date'
 import { MODAL_LABELS, type ProcessoImportacao } from '@/types/domain'
 
@@ -26,6 +26,7 @@ export function ProcessosCards({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {processos.map((p) => {
         const cliente = getCliente(p.clienteId)
+        const exportador = p.exportadorId ? getEmpresa(p.exportadorId) : undefined
         return (
           <Card
             key={p.id}
@@ -43,8 +44,8 @@ export function ProcessosCards({
               <div className="flex items-center gap-1.5">
                 <ModalIcon modal={p.modal} className="text-muted-foreground size-3.5 shrink-0" />
                 <span>{MODAL_LABELS[p.modal]}</span>
-                {p.exportador && (
-                  <span className="text-muted-foreground truncate">— {p.exportador}</span>
+                {exportador && (
+                  <span className="text-muted-foreground truncate">— {exportador.nomeFantasia}</span>
                 )}
               </div>
               {(p.previsaoEmbarque || p.previsaoChegada) && (

@@ -33,11 +33,17 @@ export function EmpresasCards({
                 {e.nomeFantasia || 'Sem nome fantasia'}
               </span>
               <Badge variant="secondary" className="shrink-0">
-                {e.contatos.length} {e.contatos.length === 1 ? 'contato' : 'contatos'}
+                {e.contatos.filter((c) => c.ativo).length}{' '}
+                {e.contatos.filter((c) => c.ativo).length === 1 ? 'contato' : 'contatos'}
               </Badge>
             </div>
             <span className="text-muted-foreground truncate text-sm">{e.razaoSocial}</span>
             <div className="flex flex-wrap gap-1">
+              {!e.ativo && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  Inativa
+                </Badge>
+              )}
               {e.tiposRelacionamento.map((tipo) => (
                 <Badge key={tipo} variant="outline" className="text-xs font-normal">
                   {TIPO_RELACIONAMENTO_EMPRESA_LABELS[tipo]}

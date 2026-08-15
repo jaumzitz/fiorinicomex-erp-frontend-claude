@@ -128,7 +128,7 @@ export function celulaColuna(p: ProcessoImportacao, id: ColunaId): string {
     case 'modal':
       return MODAL_LABELS[p.modal]
     case 'exportador':
-      return p.exportador ?? '—'
+      return p.exportadorId ? (getEmpresa(p.exportadorId)?.nomeFantasia ?? '—') : '—'
     case 'referenciaCliente':
       return p.referenciaCliente ?? '—'
     case 'licencaImportacao':

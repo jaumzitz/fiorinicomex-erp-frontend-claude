@@ -33,7 +33,16 @@ export function EmpresasTable({
         <TableBody>
           {empresas.map((e) => (
             <TableRow key={e.id} className="cursor-pointer" onClick={() => onSelecionar(e.id)}>
-              <TableCell className="font-medium">{e.nomeFantasia || '—'}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {e.nomeFantasia || '—'}
+                  {!e.ativo && (
+                    <Badge variant="outline" className="text-xs font-normal">
+                      Inativa
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>{e.razaoSocial}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
@@ -49,7 +58,9 @@ export function EmpresasTable({
               </TableCell>
               <TableCell>{e.telefone || '—'}</TableCell>
               <TableCell>{e.email || '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{e.contatos.length}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {e.contatos.filter((c) => c.ativo).length}
+              </TableCell>
             </TableRow>
           ))}
           {empresas.length === 0 && (
