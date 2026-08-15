@@ -1,8 +1,12 @@
-import { clientes } from '@/data/mock-data'
+import { empresas } from '@/data/mock-data'
 import { PI_STATUSES, type PiStatus, type ProcessoImportacao } from '@/types/domain'
 
+export function getEmpresa(empresaId: string) {
+  return empresas.find((e) => e.id === empresaId)
+}
+
 export function getCliente(clienteId: string) {
-  return clientes.find((c) => c.id === clienteId)
+  return getEmpresa(clienteId)
 }
 
 export function countByStatus(processos: ProcessoImportacao[]): Record<PiStatus, number> {

@@ -6,13 +6,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { EmpresaCadastrada } from '@/types/domain'
+import { Badge } from '@/components/ui/badge'
+import { TIPO_RELACIONAMENTO_EMPRESA_LABELS, type Empresa } from '@/types/domain'
 
 export function EmpresasTable({
   empresas,
   onSelecionar,
 }: {
-  empresas: EmpresaCadastrada[]
+  empresas: Empresa[]
   onSelecionar: (id: string) => void
 }) {
   return (
@@ -22,7 +23,8 @@ export function EmpresasTable({
           <TableRow>
             <TableHead>Nome fantasia</TableHead>
             <TableHead>Razão social</TableHead>
-            <TableHead>CNPJ</TableHead>
+            <TableHead>Tipo de relacionamento</TableHead>
+            <TableHead>CNPJ / Tax ID</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>E-mail</TableHead>
             <TableHead>Contatos</TableHead>
@@ -33,7 +35,18 @@ export function EmpresasTable({
             <TableRow key={e.id} className="cursor-pointer" onClick={() => onSelecionar(e.id)}>
               <TableCell className="font-medium">{e.nomeFantasia || '—'}</TableCell>
               <TableCell>{e.razaoSocial}</TableCell>
-              <TableCell>{e.cnpj}</TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  {e.tiposRelacionamento.map((tipo) => (
+                    <Badge key={tipo} variant="outline" className="text-xs font-normal">
+                      {TIPO_RELACIONAMENTO_EMPRESA_LABELS[tipo]}
+                    </Badge>
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell>
+                {e.estrangeira ? [e.taxId, e.pais].filter(Boolean).join(' — ') || '—' : e.cnpj || '—'}
+              </TableCell>
               <TableCell>{e.telefone || '—'}</TableCell>
               <TableCell>{e.email || '—'}</TableCell>
               <TableCell className="text-muted-foreground">{e.contatos.length}</TableCell>
@@ -41,7 +54,7 @@ export function EmpresasTable({
           ))}
           {empresas.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+              <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
                 Nenhuma empresa encontrada.
               </TableCell>
             </TableRow>

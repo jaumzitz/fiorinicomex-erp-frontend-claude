@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ProcessosProvider } from '@/store/ProcessosContext'
-import { EmpresaProvider } from '@/store/EmpresaContext'
+import { EmpresaConfigProvider } from '@/store/EmpresaConfigContext'
 import { EmpresasCadastradasProvider } from '@/store/EmpresasCadastradasContext'
 import Welcome from '@/routes/Welcome'
 import ProcessosImportacao from '@/routes/ProcessosImportacao'
@@ -12,7 +12,7 @@ import Admin from '@/routes/Admin'
 
 function App() {
   return (
-    <EmpresaProvider>
+    <EmpresaConfigProvider>
       <ProcessosProvider>
         <EmpresasCadastradasProvider>
           <BrowserRouter>
@@ -28,7 +28,7 @@ function App() {
           </BrowserRouter>
         </EmpresasCadastradasProvider>
       </ProcessosProvider>
-    </EmpresaProvider>
+    </EmpresaConfigProvider>
   )
 }
 

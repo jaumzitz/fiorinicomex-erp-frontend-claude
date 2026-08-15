@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { clientes } from '@/data/mock-data'
+import { empresas } from '@/data/mock-data'
 import { getCliente } from '@/lib/domain-queries'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -46,6 +46,8 @@ function visualizacaoInicial(): Visualizacao {
   const salvo = localStorage.getItem(CHAVE_VISUALIZACAO)
   return salvo === 'tabela' || salvo === 'cards' || salvo === 'kanban' ? salvo : 'tabela'
 }
+
+const clientes = empresas.filter((e) => e.tiposRelacionamento.includes('cliente'))
 
 export default function ProcessosImportacao() {
   const { processos, criarProcesso } = useProcessos()
@@ -72,7 +74,7 @@ export default function ProcessosImportacao() {
     const map = new Map<string, string>()
     for (const p of processos) {
       const cliente = getCliente(p.clienteId)
-      if (cliente) map.set(cliente.id, cliente.nome)
+      if (cliente) map.set(cliente.id, cliente.nomeFantasia)
     }
     return [...map.entries()]
   }, [processos])
@@ -84,7 +86,7 @@ export default function ProcessosImportacao() {
       const combinaTermo =
         termo === '' ||
         p.numero.toLowerCase().includes(termo) ||
-        cliente?.nome.toLowerCase().includes(termo)
+        cliente?.nomeFantasia.toLowerCase().includes(termo)
       const combinaStatus = statusFiltro === 'todos' || p.status === statusFiltro
       const combinaCliente = clienteFiltro === 'todos' || p.clienteId === clienteFiltro
       return combinaTermo && combinaStatus && combinaCliente
@@ -213,7 +215,7 @@ export default function ProcessosImportacao() {
                 <SelectContent>
                   {clientes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
+                      {c.nomeFantasia}
                     </SelectItem>
                   ))}
                 </SelectContent>

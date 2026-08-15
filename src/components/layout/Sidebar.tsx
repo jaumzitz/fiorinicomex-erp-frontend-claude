@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, Ship, Building2, BarChart3, Settings, Package } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { useEmpresa } from '@/store/EmpresaContext'
+import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 
 export const navItems = [
   { to: '/', label: 'Boas-vindas', icon: LayoutDashboard, end: true },
@@ -13,7 +13,7 @@ export const navItems = [
 ]
 
 export function SidebarBrand() {
-  const { empresa } = useEmpresa()
+  const { empresa } = useEmpresaConfig()
 
   return (
     <div className="flex items-center gap-2 px-5 py-5">

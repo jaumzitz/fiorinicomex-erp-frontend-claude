@@ -16,8 +16,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
+import {
+  TIPOS_RELACIONAMENTO_EMPRESA,
+  TIPO_RELACIONAMENTO_EMPRESA_LABELS,
+  type TipoRelacionamentoEmpresa,
+} from '@/types/domain'
 
 export default function EmpresasCadastro() {
   const { empresas, criarEmpresa } = useEmpresasCadastradas()
@@ -29,6 +35,7 @@ export default function EmpresasCadastro() {
   const [novoNomeFantasia, setNovoNomeFantasia] = useState('')
   const [novoRazaoSocial, setNovoRazaoSocial] = useState('')
   const [novoCnpj, setNovoCnpj] = useState('')
+  const [novosTipos, setNovosTipos] = useState<TipoRelacionamentoEmpresa[]>([])
 
   const selecionado = empresas.find((e) => e.id === selecionadoId) ?? null
 
@@ -39,7 +46,7 @@ export default function EmpresasCadastro() {
       (e) =>
         e.nomeFantasia.toLowerCase().includes(termo) ||
         e.razaoSocial.toLowerCase().includes(termo) ||
-        e.cnpj.includes(termo),
+        (e.cnpj ?? '').includes(termo),
     )
   }, [empresas, busca])
 
@@ -48,17 +55,24 @@ export default function EmpresasCadastro() {
     setDrawerAberto(true)
   }
 
+  function alternarNovoTipo(tipo: TipoRelacionamentoEmpresa, marcado: boolean) {
+    setNovosTipos((atual) => (marcado ? [...atual, tipo] : atual.filter((t) => t !== tipo)))
+  }
+
   function criar() {
-    if (!novoNomeFantasia.trim() || !novoRazaoSocial.trim() || !novoCnpj.trim()) return
+    if (!novoNomeFantasia.trim() || !novoRazaoSocial.trim() || novosTipos.length === 0) return
     const nova = criarEmpresa({
       nomeFantasia: novoNomeFantasia.trim(),
       razaoSocial: novoRazaoSocial.trim(),
-      cnpj: novoCnpj.trim(),
+      tiposRelacionamento: novosTipos,
+      estrangeira: false,
+      cnpj: novoCnpj.trim() || undefined,
     })
     setNovoAberto(false)
     setNovoNomeFantasia('')
     setNovoRazaoSocial('')
     setNovoCnpj('')
+    setNovosTipos([])
     abrirEmpresa(nova.id)
   }
 
@@ -131,6 +145,20 @@ export default function EmpresasCadastro() {
                 onChange={(e) => setNovoCnpj(e.target.value)}
               />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Tipo de relacionamento</Label>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {TIPOS_RELACIONAMENTO_EMPRESA.map((tipo) => (
+                  <label key={tipo} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={novosTipos.includes(tipo)}
+                      onCheckedChange={(v) => alternarNovoTipo(tipo, !!v)}
+                    />
+                    {TIPO_RELACIONAMENTO_EMPRESA_LABELS[tipo]}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -139,7 +167,9 @@ export default function EmpresasCadastro() {
             </Button>
             <Button
               onClick={criar}
-              disabled={!novoNomeFantasia.trim() || !novoRazaoSocial.trim() || !novoCnpj.trim()}
+              disabled={
+                !novoNomeFantasia.trim() || !novoRazaoSocial.trim() || novosTipos.length === 0
+              }
             >
               Criar empresa
             </Button>

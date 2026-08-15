@@ -4,10 +4,10 @@ import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { SidebarBrand, SidebarNav } from '@/components/layout/Sidebar'
-import { useEmpresa } from '@/store/EmpresaContext'
+import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 
 export function MobileTopBar() {
-  const { empresa } = useEmpresa()
+  const { empresa } = useEmpresaConfig()
   const [aberto, setAberto] = useState(false)
 
   return (

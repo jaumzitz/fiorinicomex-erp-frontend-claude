@@ -77,7 +77,7 @@ export function ProcessosKanban({
                     )}
                   >
                     <div className="font-medium">{p.numero}</div>
-                    <div className="text-muted-foreground truncate text-xs">{cliente?.nome}</div>
+                    <div className="text-muted-foreground truncate text-xs">{cliente?.nomeFantasia}</div>
                     <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
                       <ModalIcon modal={p.modal} className="size-3.5" />
                       {MODAL_LABELS[p.modal]}

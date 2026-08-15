@@ -6,17 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { fornecedoresFrete } from '@/data/mock-data'
-import { useEmpresa } from '@/store/EmpresaContext'
-import type { Empresa } from '@/types/domain'
+import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
+import type { EmpresaConfig } from '@/types/domain'
 
 function Campo({
   id,
@@ -90,13 +81,13 @@ function CampoImagem({
 }
 
 export default function Admin() {
-  const { empresa, atualizarEmpresa } = useEmpresa()
+  const { empresa, atualizarEmpresa } = useEmpresaConfig()
 
-  function campo(chave: keyof Empresa) {
+  function campo(chave: keyof EmpresaConfig) {
     return (valor: string) => atualizarEmpresa({ [chave]: valor })
   }
 
-  function campoBancario(chave: keyof Empresa['dadosBancarios']) {
+  function campoBancario(chave: keyof EmpresaConfig['dadosBancarios']) {
     return (valor: string) =>
       atualizarEmpresa({ dadosBancarios: { ...empresa.dadosBancarios, [chave]: valor } })
   }
@@ -105,7 +96,7 @@ export default function Admin() {
     <div>
       <PageHeader
         title="Administração"
-        description="Dados da empresa, identidade, usuários e fornecedores"
+        description="Dados da empresa, identidade e usuários"
       />
 
       <div className="flex flex-col gap-6 px-8 py-6">
@@ -217,32 +208,6 @@ export default function Admin() {
                 quando o back-end (Supabase Storage) for integrado.
               </p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Fornecedores de frete</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Contato</TableHead>
-                  <TableHead>E-mail</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fornecedoresFrete.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell className="font-medium">{f.nome}</TableCell>
-                    <TableCell>{f.contato}</TableCell>
-                    <TableCell>{f.email}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
 

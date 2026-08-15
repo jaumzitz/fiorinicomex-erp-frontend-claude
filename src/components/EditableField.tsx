@@ -30,6 +30,7 @@ export function EditableField({
             'h-8',
             type === 'date' &&
               "pl-8 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:opacity-0",
+            type === 'date' && !value && 'text-muted-foreground',
           )}
         />
       </div>
